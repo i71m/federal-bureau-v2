@@ -83,6 +83,10 @@ app.use("/api/relationships", createRelationshipsRouter(pool));
 const createCasesRouter = require("./routes/cases");
 app.use("/api/cases", createCasesRouter(pool));
 
+// سجل تاريخ القضايا
+const createCaseHistoryRouter = require("./routes/case-history");
+app.use("/api/case-history", createCaseHistoryRouter(pool));
+
 // المطلوبون
 const createWantedRouter = require("./routes/wanted");
 app.use("/api/wanted", createWantedRouter(pool));
