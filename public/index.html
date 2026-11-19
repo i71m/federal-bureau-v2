@@ -5,9 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FEDERAL BUREAU | Operations Center</title>
-
 <link href="https://unpkg.com/vis-network/styles/vis-network.min.css" rel="stylesheet">
-
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#080f1c;color:#e9edf5;font-family:Arial,sans-serif}
@@ -54,6 +52,7 @@ th,td{padding:13px;text-align:right;border-bottom:1px solid #34445b;font-size:13
 th{color:#d7b46a;background:#0b1728}
 .small-button{padding:7px 12px;border:0;border-radius:5px;background:#315b49;color:white}
 .delete-button{padding:7px 12px;border:0;border-radius:5px;background:#792f36;color:white;margin-right:5px}
+.edit-button{padding:7px 12px;border:0;border-radius:5px;background:#8b6b32;color:white;margin-right:5px}
 .active-label{color:#83d6a8}
 .disabled-label{color:#ff8585}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:15px 0}
@@ -69,14 +68,20 @@ th{color:#d7b46a;background:#0b1728}
 .network-stat strong{display:block;font-size:22px;color:#d7b46a;margin-top:6px}
 .person-name{font-size:19px;color:#d7b46a;font-weight:bold;margin:12px 0}
 .relation-item{padding:10px;background:#111e32;border-radius:7px;margin:8px 0;font-size:13px;line-height:1.8}
-.tag{display:inline-block;padding:5px 9px;background:#263b54;border-radius:15px;font-size:11px;color:#d7b46a;margin:3px}
 .empty{padding:30px;text-align:center;color:#8491a5}
+.case-number{color:#d7b46a;font-weight:bold;white-space:nowrap}
+.case-status{display:inline-block;padding:5px 9px;border-radius:15px;background:#263b54;color:#d7b46a;font-size:11px}
+.case-priority{font-weight:bold}
+.priority-high{color:#ffbd69}
+.priority-critical{color:#ff8585}
+.priority-normal{color:#83d6a8}
+.form-actions{display:flex;gap:10px;flex-wrap:wrap}
+.form-actions button{margin-top:10px}
 footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 @media(max-width:850px){.network-layout{grid-template-columns:1fr}.network-box{min-height:400px}#network{height:400px}}
 @media(max-width:600px){header{padding:15px}.brand{font-size:18px}.container{padding:14px}.hero h1{font-size:25px}.panel{padding:14px}}
 </style>
 </head>
-
 <body>
 
 <header>
@@ -90,7 +95,6 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
   <p>نظام إدارة العمليات والمعلومات الأمنية</p>
   <div class="status">● SYSTEM INTERFACE ONLINE</div>
  </section>
-
  <div class="login">
   <h2>تسجيل دخول الضباط</h2>
   <form id="loginForm">
@@ -146,7 +150,6 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
    <div id="officersSection" class="hidden">
     <h2>إدارة الضباط</h2>
     <p>إنشاء حسابات الضباط ومراجعة الأفراد المسجلين في النظام.</p>
-
     <div id="adminOnly">
      <h3>إضافة ضابط جديد</h3>
      <form id="officerForm">
@@ -156,19 +159,16 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
        <input id="newPassword" type="password" placeholder="كلمة المرور (8 أحرف على الأقل)" minlength="8" required>
        <select id="newRank" required>
         <option value="">اختر الرتبة</option>
-        <option>Agent 0</option><option>Agent 1</option>
-        <option>Agent 2</option><option>Agent 3</option>
-        <option>Agent 4</option><option>Agent 5</option>
-        <option>Agent 6</option><option>Agent 7</option>
-        <option>Agent 8</option><option>Agent 9</option>
-        <option>Agent 10</option>
+        <option>Agent 0</option><option>Agent 1</option><option>Agent 2</option>
+        <option>Agent 3</option><option>Agent 4</option><option>Agent 5</option>
+        <option>Agent 6</option><option>Agent 7</option><option>Agent 8</option>
+        <option>Agent 9</option><option>Agent 10</option>
        </select>
       </div>
       <button class="primary full" id="createOfficerButton" type="submit">إنشاء حساب الضابط</button>
      </form>
      <div id="createMessage" class="message"></div>
     </div>
-
     <div id="officerAccessMessage" class="message hidden"></div>
     <div class="toolbar">
      <h3>قائمة الضباط</h3>
@@ -183,17 +183,84 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
     </div>
    </div>
 
+   <!-- CASES -->
+   <div id="casesSection" class="hidden">
+    <h2>إدارة ملفات القضايا</h2>
+    <p>إنشاء ملفات القضايا ومتابعة حالتها وأولويتها والضباط المكلّفين بها.</p>
+
+    <div class="grid">
+     <div class="network-stat">إجمالي القضايا<strong id="casesTotal">0</strong></div>
+     <div class="network-stat">قضايا مفتوحة<strong id="casesOpen">0</strong></div>
+     <div class="network-stat">قضايا قيد العمل<strong id="casesProgress">0</strong></div>
+     <div class="network-stat">قضايا مغلقة<strong id="casesClosed">0</strong></div>
+    </div>
+
+    <div class="panel">
+     <h3 id="caseFormTitle">إنشاء قضية جديدة</h3>
+     <form id="caseForm">
+      <div class="form-grid">
+       <input id="caseTitle" placeholder="عنوان القضية" maxlength="200" required>
+       <select id="caseStatus" required>
+        <option value="Open">مفتوحة</option>
+        <option value="In Progress">قيد العمل</option>
+        <option value="Closed">مغلقة</option>
+       </select>
+       <select id="casePriority" required>
+        <option value="Normal">عادية</option>
+        <option value="High">مرتفعة</option>
+        <option value="Critical">حرجة</option>
+       </select>
+       <div id="caseOfficerField">
+        <select id="caseAssignedTo">
+         <option value="">بدون ضابط مكلّف</option>
+        </select>
+       </div>
+      </div>
+      <textarea id="caseDescription" placeholder="وصف القضية والتفاصيل..." maxlength="10000"></textarea>
+      <div class="form-actions">
+       <button class="primary" id="saveCaseButton" type="submit">إنشاء القضية</button>
+       <button class="secondary hidden" id="cancelCaseEdit" type="button">إلغاء التعديل</button>
+      </div>
+     </form>
+     <div id="caseMessage" class="message"></div>
+    </div>
+
+    <div class="toolbar">
+     <h3>سجل القضايا</h3>
+     <button class="primary" id="refreshCases">تحديث القضايا</button>
+    </div>
+    <div class="toolbar">
+     <input id="caseSearch" placeholder="ابحث برقم القضية أو عنوانها...">
+     <select id="caseFilter" style="max-width:200px">
+      <option value="">جميع الحالات</option>
+      <option value="Open">مفتوحة</option>
+      <option value="In Progress">قيد العمل</option>
+      <option value="Closed">مغلقة</option>
+     </select>
+    </div>
+    <div id="casesListMessage" class="message"></div>
+    <div class="table-wrap">
+     <table>
+      <thead>
+       <tr>
+        <th>رقم القضية</th><th>العنوان</th><th>الحالة</th>
+        <th>الأولوية</th><th>الضابط المكلّف</th><th>تاريخ الإنشاء</th><th>الإجراءات</th>
+       </tr>
+      </thead>
+      <tbody id="casesTable"><tr><td colspan="7">جارٍ التحميل...</td></tr></tbody>
+     </table>
+    </div>
+   </div>
+
    <!-- RELATIONSHIPS -->
    <div id="relationshipsSection" class="hidden">
     <h2>مركز تحليل شبكة العلاقات</h2>
     <p>منصة لعرض الروابط بين الأشخاص وتحليل العلاقات المباشرة وغير المباشرة.</p>
-
     <div class="grid">
      <div class="network-stat">إجمالي العلاقات<strong id="totalRelations">0</strong></div>
      <div class="network-stat">الأشخاص المسجلون<strong id="totalPeople">0</strong></div>
      <div class="network-stat">الشخص المحدد<strong id="selectedPersonCount">—</strong></div>
     </div>
-
     <div class="panel">
      <h3>إضافة علاقة جديدة</h3>
      <form id="relationshipForm">
@@ -202,14 +269,10 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
        <input id="personTwo" placeholder="اسم الشخص الثاني" required>
        <select id="relationshipType" required>
         <option value="">اختر نوع العلاقة</option>
-        <option value="شراكة">شراكة</option>
-        <option value="قرابة">قرابة</option>
-        <option value="صداقة">صداقة</option>
-        <option value="عداوة">عداوة</option>
-        <option value="عمل">عمل</option>
-        <option value="اتصال">اتصال</option>
-        <option value="مشتبه به">مشتبه به</option>
-        <option value="أخرى">أخرى</option>
+        <option value="شراكة">شراكة</option><option value="قرابة">قرابة</option>
+        <option value="صداقة">صداقة</option><option value="عداوة">عداوة</option>
+        <option value="عمل">عمل</option><option value="اتصال">اتصال</option>
+        <option value="مشتبه به">مشتبه به</option><option value="أخرى">أخرى</option>
        </select>
       </div>
       <textarea id="relationshipNotes" placeholder="ملاحظات عن العلاقة (اختياري)"></textarea>
@@ -217,17 +280,13 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
      </form>
      <div id="relationshipMessage" class="message"></div>
     </div>
-
     <div class="toolbar">
      <input id="networkSearch" placeholder="ابحث عن شخص في الشبكة...">
      <button class="secondary" id="resetNetwork">إعادة عرض الشبكة</button>
      <button class="secondary" id="refreshNetwork">تحديث البيانات</button>
     </div>
-
     <div class="network-layout">
-     <div class="network-box">
-      <div id="network"></div>
-     </div>
+     <div class="network-box"><div id="network"></div></div>
      <aside class="network-side">
       <h3>ملف الشخص المحدد</h3>
       <div id="personDetails" class="empty">اختر شخصًا من الشبكة لعرض تفاصيله.</div>
@@ -238,7 +297,6 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
       <div class="relation-item">اضغط على أي شخص لعرض ارتباطاته.</div>
      </aside>
     </div>
-
     <div class="panel">
      <h3>قائمة العلاقات المسجلة</h3>
      <div class="table-wrap">
@@ -255,16 +313,13 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
     <h2 id="sectionTitle"></h2>
     <p id="sectionDescription"></p>
    </div>
-
    <button class="primary full" id="backButton">العودة إلى لوحة القيادة</button>
   </section>
  </div>
 </main>
 
 <footer>FEDERAL BUREAU © 2026 — ALL RIGHTS RESERVED</footer>
-
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-
 <script>
 const loginPage=document.getElementById("loginPage");
 const dashboardPage=document.getElementById("dashboardPage");
@@ -278,10 +333,12 @@ let networkInstance=null;
 let networkNodes=null;
 let networkEdges=null;
 let selectedPerson=null;
+let casesData=[];
+let editingCaseId=null;
+let officersForCases=[];
 
 const sectionInfo={
  wanted:["المطلوبون","قسم المطلوبين يحتاج إلى مسارات API مستقلة قبل تفعيله."],
- cases:["ملفات القضايا","إدارة القضايا متاحة عبر واجهة API الحالية، وسيتم تطوير واجهتها في مرحلة لاحقة."],
  reports:["التقارير الأمنية","هذا القسم يحتاج إلى إنشاء مسارات API وربطها بقاعدة البيانات."],
  evidence:["الأدلة والمرفقات","هذا القسم يحتاج إلى مسارات API خاصة بالأدلة والمرفقات."],
  permissions:["الصلاحيات","إدارة الصلاحيات المتقدمة ستكون ضمن تطوير لاحق."],
@@ -291,13 +348,11 @@ const sectionInfo={
 function isAdmin(){
  return currentOfficer&&String(currentOfficer.role||"").toLowerCase()==="admin";
 }
-
 function showLogin(){
  currentOfficer=null;
  dashboardPage.classList.add("hidden");
  loginPage.classList.remove("hidden");
 }
-
 function showDashboard(officer){
  currentOfficer=officer;
  loginPage.classList.add("hidden");
@@ -305,7 +360,6 @@ function showDashboard(officer){
  document.getElementById("officerName").textContent=officer.full_name||officer.username;
  document.getElementById("officerRank").textContent="الرتبة: "+(officer.rank||"غير محددة");
 }
-
 async function checkSession(){
  try{
   const response=await fetch("/api/auth/me",{credentials:"same-origin"});
@@ -323,9 +377,7 @@ loginForm.addEventListener("submit",async event=>{
  loginMessage.textContent="";
  try{
   const response=await fetch("/api/auth/login",{
-   method:"POST",
-   headers:{"Content-Type":"application/json"},
-   credentials:"same-origin",
+   method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
    body:JSON.stringify({
     username:document.getElementById("username").value.trim(),
     password:document.getElementById("password").value
@@ -354,31 +406,25 @@ document.getElementById("logoutButton").addEventListener("click",async()=>{
 });
 
 /* OFFICERS */
-
 async function loadOfficers(){
  const tbody=document.getElementById("officersTable");
  const message=document.getElementById("listMessage");
  tbody.innerHTML='<tr><td colspan="6">جارٍ تحميل البيانات...</td></tr>';
  message.textContent="";
-
  if(!isAdmin()){
   tbody.innerHTML='<tr><td colspan="6">عرض قائمة الضباط يتطلب صلاحية المدير.</td></tr>';
   return;
  }
-
  try{
   const response=await fetch("/api/officers",{credentials:"same-origin"});
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر تحميل قائمة الضباط");
-
   const officers=data.officers||[];
   document.getElementById("officerCount").textContent=officers.length;
-
   if(!officers.length){
    tbody.innerHTML='<tr><td colspan="6">لا يوجد ضباط مسجلون.</td></tr>';
    return;
   }
-
   tbody.innerHTML="";
   officers.forEach(officer=>{
    const tr=document.createElement("tr");
@@ -388,7 +434,6 @@ async function loadOfficers(){
     if(index===4)td.className=officer.active?"active-label":"disabled-label";
     tr.appendChild(td);
    });
-
    const actions=document.createElement("td");
    if(String(officer.role||"").toLowerCase()!=="admin"){
     const statusButton=document.createElement("button");
@@ -406,7 +451,6 @@ async function loadOfficers(){
       loadOfficers();
      }catch(error){alert(error.message);}
     };
-
     const deleteButton=document.createElement("button");
     deleteButton.className="delete-button";
     deleteButton.textContent="حذف";
@@ -421,7 +465,6 @@ async function loadOfficers(){
     };
     actions.append(statusButton,deleteButton);
    }else actions.textContent="—";
-
    tr.appendChild(actions);
    tbody.appendChild(tr);
   });
@@ -435,12 +478,10 @@ async function loadOfficers(){
 document.getElementById("officerForm").addEventListener("submit",async event=>{
  event.preventDefault();
  if(!isAdmin())return;
-
  const button=document.getElementById("createOfficerButton");
  const message=document.getElementById("createMessage");
  button.disabled=true;
  message.textContent="";
-
  try{
   const response=await fetch("/api/officers",{
    method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
@@ -463,8 +504,204 @@ document.getElementById("officerForm").addEventListener("submit",async event=>{
  }finally{button.disabled=false;}
 });
 
-/* RELATIONSHIP NETWORK */
+/* CASE MANAGEMENT */
+function statusArabic(status){
+ return {"Open":"مفتوحة","In Progress":"قيد العمل","Closed":"مغلقة"}[status]||status||"غير محددة";
+}
+function priorityArabic(priority){
+ return {"Normal":"عادية","High":"مرتفعة","Critical":"حرجة"}[priority]||priority||"عادية";
+}
+function formatDate(value){
+ if(!value)return "—";
+ const date=new Date(value);
+ if(Number.isNaN(date.getTime()))return "—";
+ return date.toLocaleDateString("ar-SA");
+}
+async function loadCaseOfficers(){
+ if(!isAdmin())return;
+ try{
+  const response=await fetch("/api/officers",{credentials:"same-origin"});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر تحميل الضباط");
+  officersForCases=(data.officers||[]).filter(o=>o.active);
+  const select=document.getElementById("caseAssignedTo");
+  const current=select.value;
+  select.innerHTML='<option value="">بدون ضابط مكلّف</option>';
+  officersForCases.forEach(officer=>{
+   const option=document.createElement("option");
+   option.value=officer.id;
+   option.textContent=officer.full_name+" — "+(officer.rank||"");
+   select.appendChild(option);
+  });
+  if(current)select.value=current;
+ }catch(error){
+  console.error("Case officers:",error);
+ }
+}
+function updateCaseStats(){
+ document.getElementById("casesTotal").textContent=casesData.length;
+ document.getElementById("casesOpen").textContent=casesData.filter(c=>c.status==="Open").length;
+ document.getElementById("casesProgress").textContent=casesData.filter(c=>c.status==="In Progress").length;
+ document.getElementById("casesClosed").textContent=casesData.filter(c=>c.status==="Closed").length;
+ document.getElementById("caseCount").textContent=casesData.length;
+}
+function renderCases(){
+ const tbody=document.getElementById("casesTable");
+ const search=document.getElementById("caseSearch").value.trim().toLowerCase();
+ const filter=document.getElementById("caseFilter").value;
+ const filtered=casesData.filter(c=>{
+  const matchesSearch=String(c.case_number||"").toLowerCase().includes(search)||
+   String(c.title||"").toLowerCase().includes(search);
+  return matchesSearch&&(!filter||c.status===filter);
+ });
+ tbody.innerHTML="";
+ if(!filtered.length){
+  tbody.innerHTML='<tr><td colspan="7">لا توجد قضايا مطابقة.</td></tr>';
+  return;
+ }
+ filtered.forEach(c=>{
+  const tr=document.createElement("tr");
 
+  const number=document.createElement("td");
+  number.className="case-number";
+  number.textContent=c.case_number||"—";
+  tr.appendChild(number);
+
+  const title=document.createElement("td");
+  title.textContent=c.title||"—";
+  tr.appendChild(title);
+
+  const status=document.createElement("td");
+  const statusTag=document.createElement("span");
+  statusTag.className="case-status";
+  statusTag.textContent=statusArabic(c.status);
+  status.appendChild(statusTag);
+  tr.appendChild(status);
+
+  const priority=document.createElement("td");
+  priority.className="case-priority "+(c.priority==="Critical"?"priority-critical":c.priority==="High"?"priority-high":"priority-normal");
+  priority.textContent=priorityArabic(c.priority);
+  tr.appendChild(priority);
+
+  const assigned=document.createElement("td");
+  assigned.textContent=c.assigned_officer_name||"غير مكلّف";
+  tr.appendChild(assigned);
+
+  const created=document.createElement("td");
+  created.textContent=formatDate(c.created_at);
+  tr.appendChild(created);
+
+  const actions=document.createElement("td");
+  const edit=document.createElement("button");
+  edit.className="edit-button";
+  edit.textContent="تعديل";
+  edit.onclick=()=>startCaseEdit(c);
+
+  const del=document.createElement("button");
+  del.className="delete-button";
+  del.textContent="حذف";
+  del.onclick=()=>deleteCase(c);
+
+  actions.append(edit,del);
+  tr.appendChild(actions);
+  tbody.appendChild(tr);
+ });
+}
+async function loadCases(){
+ const tbody=document.getElementById("casesTable");
+ const message=document.getElementById("casesListMessage");
+ tbody.innerHTML='<tr><td colspan="7">جارٍ تحميل القضايا...</td></tr>';
+ message.textContent="";
+ try{
+  const response=await fetch("/api/cases",{credentials:"same-origin"});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر تحميل القضايا");
+  if(!Array.isArray(data))throw new Error("صيغة بيانات القضايا غير متوقعة");
+  casesData=data;
+  updateCaseStats();
+  renderCases();
+ }catch(error){
+  tbody.innerHTML='<tr><td colspan="7">تعذر تحميل القضايا.</td></tr>';
+  message.style.color="#ff8585";
+  message.textContent=error.message;
+ }
+}
+function resetCaseForm(){
+ editingCaseId=null;
+ document.getElementById("caseForm").reset();
+ document.getElementById("caseStatus").value="Open";
+ document.getElementById("casePriority").value="Normal";
+ document.getElementById("caseFormTitle").textContent="إنشاء قضية جديدة";
+ document.getElementById("saveCaseButton").textContent="إنشاء القضية";
+ document.getElementById("cancelCaseEdit").classList.add("hidden");
+ document.getElementById("caseMessage").textContent="";
+}
+function startCaseEdit(c){
+ editingCaseId=c.id;
+ document.getElementById("caseTitle").value=c.title||"";
+ document.getElementById("caseDescription").value=c.description||"";
+ document.getElementById("caseStatus").value=c.status||"Open";
+ document.getElementById("casePriority").value=c.priority||"Normal";
+ if(isAdmin())document.getElementById("caseAssignedTo").value=c.assigned_to||"";
+ document.getElementById("caseFormTitle").textContent="تعديل القضية: "+(c.case_number||"");
+ document.getElementById("saveCaseButton").textContent="حفظ التعديلات";
+ document.getElementById("cancelCaseEdit").classList.remove("hidden");
+ document.getElementById("caseMessage").textContent="";
+ document.getElementById("caseFormTitle").scrollIntoView({behavior:"smooth",block:"center"});
+}
+document.getElementById("caseForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ const button=document.getElementById("saveCaseButton");
+ const message=document.getElementById("caseMessage");
+ button.disabled=true;
+ message.textContent="";
+ const payload={
+  title:document.getElementById("caseTitle").value.trim(),
+  description:document.getElementById("caseDescription").value.trim(),
+  status:document.getElementById("caseStatus").value,
+  priority:document.getElementById("casePriority").value
+ };
+ if(isAdmin())payload.assigned_to=document.getElementById("caseAssignedTo").value;
+ const isEditing=editingCaseId!==null;
+ const url=isEditing?`/api/cases/${encodeURIComponent(editingCaseId)}`:"/api/cases";
+ try{
+  const response=await fetch(url,{
+   method:isEditing?"PATCH":"POST",
+   headers:{"Content-Type":"application/json"},
+   credentials:"same-origin",
+   body:JSON.stringify(payload)
+  });
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر حفظ القضية");
+  message.style.color="#83d6a8";
+  message.textContent=isEditing?"تم تحديث القضية بنجاح.":"تم إنشاء القضية بنجاح.";
+  resetCaseForm();
+  await loadCases();
+  message.style.color="#83d6a8";
+  message.textContent=isEditing?"تم تحديث القضية بنجاح.":"تم إنشاء القضية بنجاح.";
+ }catch(error){
+  message.style.color="#ff8585";
+  message.textContent=error.message;
+ }finally{button.disabled=false;}
+});
+document.getElementById("cancelCaseEdit").addEventListener("click",resetCaseForm);
+async function deleteCase(c){
+ if(!confirm("هل أنت متأكد من حذف القضية "+(c.case_number||"")+"؟"))return;
+ try{
+  const response=await fetch(`/api/cases/${encodeURIComponent(c.id)}`,{
+   method:"DELETE",credentials:"same-origin"
+  });
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر حذف القضية");
+  alert("تم حذف القضية.");
+  await loadCases();
+ }catch(error){alert(error.message);}
+}
+document.getElementById("refreshCases").addEventListener("click",loadCases);
+document.getElementById("caseSearch").addEventListener("input",renderCases);
+document.getElementById("caseFilter").addEventListener("change",renderCases);
+
+/* RELATIONSHIP NETWORK */
 function getPeopleFromRelations(relations){
  const people=new Set();
  relations.forEach(r=>{
@@ -473,65 +710,43 @@ function getPeopleFromRelations(relations){
  });
  return [...people].filter(Boolean);
 }
-
 function buildNetwork(relations){
  if(typeof vis==="undefined"){
   document.getElementById("network").innerHTML='<div class="empty">تعذر تحميل مكتبة الشبكة. تحقق من اتصال الإنترنت ثم حدّث الصفحة.</div>';
   return;
  }
-
  const people=getPeopleFromRelations(relations);
  const nodes=people.map(name=>({
-  id:name,
-  label:name,
-  shape:"dot",
-  size:22,
+  id:name,label:name,shape:"dot",size:22,
   color:{background:"#b18a42",border:"#f0d18c",highlight:{background:"#e2bd6e",border:"#fff0c7"}},
-  font:{color:"#f2e6ca",size:16,face:"Arial"},
-  borderWidth:2
+  font:{color:"#f2e6ca",size:16,face:"Arial"},borderWidth:2
  }));
-
  const edges=relations.map((r,index)=>({
-  id:r.id??index,
-  from:String(r.person_one).trim(),
-  to:String(r.person_two).trim(),
-  label:r.relationship_type||"علاقة",
-  title:r.notes||r.relationship_type||"علاقة",
+  id:r.id??index,from:String(r.person_one).trim(),to:String(r.person_two).trim(),
+  label:r.relationship_type||"علاقة",title:r.notes||r.relationship_type||"علاقة",
   color:{color:"#647c9c",highlight:"#d7b46a",hover:"#d7b46a"},
   font:{color:"#c5d0df",size:11,background:"#101c30",strokeWidth:0},
-  width:2,
-  smooth:{type:"dynamic"}
+  width:2,smooth:{type:"dynamic"}
  }));
-
  networkNodes=new vis.DataSet(nodes);
  networkEdges=new vis.DataSet(edges);
-
  const container=document.getElementById("network");
- const data={nodes:networkNodes,edges:networkEdges};
  const options={
   autoResize:true,
   interaction:{hover:true,tooltipDelay:150,navigationButtons:true,keyboard:true},
-  physics:{
-   enabled:true,
-   stabilization:{iterations:180},
-   barnesHut:{gravitationalConstant:-4500,springLength:160,springConstant:0.035,damping:0.12}
-  },
+  physics:{enabled:true,stabilization:{iterations:180},barnesHut:{gravitationalConstant:-4500,springLength:160,springConstant:0.035,damping:0.12}},
   nodes:{shadow:{enabled:true,color:"rgba(0,0,0,.4)",size:10,x:2,y:2}},
   edges:{selectionWidth:2,hoverWidth:2}
  };
-
  if(networkInstance)networkInstance.destroy();
- networkInstance=new vis.Network(container,data,options);
-
+ networkInstance=new vis.Network(container,{nodes:networkNodes,edges:networkEdges},options);
  networkInstance.on("click",params=>{
   if(params.nodes.length)showPersonDetails(params.nodes[0]);
  });
-
  document.getElementById("totalRelations").textContent=relations.length;
  document.getElementById("totalPeople").textContent=people.length;
  document.getElementById("relationshipCount").textContent=relations.length;
 }
-
 function getPersonConnections(name){
  const direct=[];
  relationshipData.forEach(r=>{
@@ -542,54 +757,42 @@ function getPersonConnections(name){
  });
  return direct;
 }
-
 function getIndirectPeople(name){
  const visited=new Set([name]);
  const queue=[{name,depth:0}];
  const indirect=new Map();
-
  while(queue.length){
   const current=queue.shift();
   if(current.depth>=2)continue;
-
-  const connections=getPersonConnections(current.name);
-  connections.forEach(connection=>{
+  getPersonConnections(current.name).forEach(connection=>{
    if(visited.has(connection.name))return;
    visited.add(connection.name);
    queue.push({name:connection.name,depth:current.depth+1});
-   if(connection.name!==name){
-    indirect.set(connection.name,{name:connection.name,depth:current.depth+1});
-   }
+   if(connection.name!==name)indirect.set(connection.name,{name:connection.name,depth:current.depth+1});
   });
  }
  return [...indirect.values()].filter(p=>p.depth>1);
 }
-
 function showPersonDetails(name){
  selectedPerson=name;
  const direct=getPersonConnections(name);
  const indirect=getIndirectPeople(name);
  document.getElementById("selectedPersonCount").textContent=name;
-
  const details=document.getElementById("personDetails");
  details.innerHTML="";
-
  const title=document.createElement("div");
  title.className="person-name";
  title.textContent=name;
  details.appendChild(title);
-
  const directTitle=document.createElement("p");
- directTitle.innerHTML="<strong>العلاقات المباشرة: "+direct.length+"</strong>";
+ directTitle.textContent="العلاقات المباشرة: "+direct.length;
  details.appendChild(directTitle);
-
  if(!direct.length){
   const empty=document.createElement("div");
   empty.className="relation-item";
   empty.textContent="لا توجد علاقات مباشرة مسجلة.";
   details.appendChild(empty);
  }
-
  direct.forEach(item=>{
   const div=document.createElement("div");
   div.className="relation-item";
@@ -602,18 +805,15 @@ function showPersonDetails(name){
   div.append(strong,type,note);
   details.appendChild(div);
  });
-
  const indirectTitle=document.createElement("p");
- indirectTitle.innerHTML="<strong>الأشخاص المرتبطون بشكل غير مباشر: "+indirect.length+"</strong>";
+ indirectTitle.textContent="الأشخاص المرتبطون بشكل غير مباشر: "+indirect.length;
  details.appendChild(indirectTitle);
-
  if(!indirect.length){
   const empty=document.createElement("div");
   empty.className="relation-item";
   empty.textContent="لا توجد روابط غير مباشرة مكتشفة ضمن مستوى التحليل الحالي.";
   details.appendChild(empty);
  }
-
  indirect.forEach(item=>{
   const div=document.createElement("div");
   div.className="relation-item";
@@ -621,22 +821,18 @@ function showPersonDetails(name){
   details.appendChild(div);
  });
 }
-
 async function loadRelationships(){
  const table=document.getElementById("relationshipsTable");
  const message=document.getElementById("relationshipMessage");
  table.innerHTML='<tr><td colspan="5">جارٍ تحميل العلاقات...</td></tr>';
  message.textContent="";
-
  try{
   const response=await fetch("/api/relationships",{credentials:"same-origin"});
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر تحميل شبكة العلاقات");
-
   relationshipData=data.relationships||[];
   buildNetwork(relationshipData);
   renderRelationshipsTable();
-
   if(selectedPerson&&getPeopleFromRelations(relationshipData).includes(selectedPerson)){
    showPersonDetails(selectedPerson);
   }else{
@@ -650,16 +846,13 @@ async function loadRelationships(){
   message.textContent=error.message;
  }
 }
-
 function renderRelationshipsTable(){
  const tbody=document.getElementById("relationshipsTable");
  tbody.innerHTML="";
-
  if(!relationshipData.length){
   tbody.innerHTML='<tr><td colspan="5">لا توجد علاقات مسجلة حتى الآن.</td></tr>';
   return;
  }
-
  relationshipData.forEach(r=>{
   const tr=document.createElement("tr");
   [r.person_one,r.relationship_type,r.person_two,r.notes||"—"].forEach(value=>{
@@ -667,7 +860,6 @@ function renderRelationshipsTable(){
    td.textContent=value??"—";
    tr.appendChild(td);
   });
-
   const action=document.createElement("td");
   if(isAdmin()||String(r.created_by)===String(currentOfficer?.id)){
    const del=document.createElement("button");
@@ -676,9 +868,7 @@ function renderRelationshipsTable(){
    del.onclick=async()=>{
     if(!confirm("هل تريد حذف هذه العلاقة؟"))return;
     try{
-     const response=await fetch(`/api/relationships/${encodeURIComponent(r.id)}`,{
-      method:"DELETE",credentials:"same-origin"
-     });
+     const response=await fetch(`/api/relationships/${encodeURIComponent(r.id)}`,{method:"DELETE",credentials:"same-origin"});
      const result=await response.json();
      if(!response.ok)throw new Error(result.error||"تعذر حذف العلاقة");
      await loadRelationships();
@@ -686,37 +876,29 @@ function renderRelationshipsTable(){
    };
    action.appendChild(del);
   }else action.textContent="—";
-
   tr.appendChild(action);
   tbody.appendChild(tr);
  });
 }
-
 document.getElementById("relationshipForm").addEventListener("submit",async event=>{
  event.preventDefault();
-
  const button=document.getElementById("addRelationshipButton");
  const message=document.getElementById("relationshipMessage");
  button.disabled=true;
  message.textContent="";
-
  const payload={
   person_one:document.getElementById("personOne").value.trim(),
   person_two:document.getElementById("personTwo").value.trim(),
   relationship_type:document.getElementById("relationshipType").value,
   notes:document.getElementById("relationshipNotes").value.trim()
  };
-
  try{
   const response=await fetch("/api/relationships",{
-   method:"POST",
-   headers:{"Content-Type":"application/json"},
-   credentials:"same-origin",
+   method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
    body:JSON.stringify(payload)
   });
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر إضافة العلاقة");
-
   message.style.color="#83d6a8";
   message.textContent="تمت إضافة العلاقة بنجاح.";
   event.target.reset();
@@ -726,56 +908,48 @@ document.getElementById("relationshipForm").addEventListener("submit",async even
   message.textContent=error.message;
  }finally{button.disabled=false;}
 });
-
 document.getElementById("networkSearch").addEventListener("input",event=>{
  const value=event.target.value.trim().toLowerCase();
  if(!networkNodes)return;
-
  const people=getPeopleFromRelations(relationshipData);
  const matched=people.find(name=>name.toLowerCase().includes(value));
-
  if(!value){
   networkNodes.forEach(node=>networkNodes.update({id:node.id,color:{background:"#b18a42",border:"#f0d18c"}}));
   return;
  }
-
  networkNodes.forEach(node=>{
   const found=node.id.toLowerCase().includes(value);
   networkNodes.update({
    id:node.id,
-   color:found
-    ?{background:"#d7b46a",border:"#fff0c7"}
-    :{background:"#35445b",border:"#35445b"}
+   color:found?{background:"#d7b46a",border:"#fff0c7"}:{background:"#35445b",border:"#35445b"}
   });
  });
-
  if(matched&&networkInstance){
   networkInstance.focus(matched,{scale:1.3,animation:{duration:500}});
   showPersonDetails(matched);
  }
 });
-
 document.getElementById("refreshNetwork").addEventListener("click",loadRelationships);
-
 document.getElementById("resetNetwork").addEventListener("click",()=>{
  document.getElementById("networkSearch").value="";
  if(networkInstance)networkInstance.fit({animation:true});
  if(networkNodes){
-  networkNodes.forEach(node=>networkNodes.update({
-   id:node.id,color:{background:"#b18a42",border:"#f0d18c"}
-  }));
+  networkNodes.forEach(node=>networkNodes.update({id:node.id,color:{background:"#b18a42",border:"#f0d18c"}}));
  }
 });
 
+/* NAVIGATION */
 function openSection(key){
  const sectionView=document.getElementById("sectionView");
  const officersSection=document.getElementById("officersSection");
  const relationshipsSection=document.getElementById("relationshipsSection");
+ const casesSection=document.getElementById("casesSection");
  const otherSection=document.getElementById("otherSection");
 
  sectionView.classList.remove("hidden");
  officersSection.classList.add("hidden");
  relationshipsSection.classList.add("hidden");
+ casesSection.classList.add("hidden");
  otherSection.classList.add("hidden");
 
  if(key==="officers"){
@@ -788,6 +962,16 @@ function openSection(key){
  }else if(key==="relationships"){
   relationshipsSection.classList.remove("hidden");
   loadRelationships();
+ }else if(key==="cases"){
+  casesSection.classList.remove("hidden");
+  resetCaseForm();
+  if(isAdmin()){
+   document.getElementById("caseOfficerField").classList.remove("hidden");
+   loadCaseOfficers();
+  }else{
+   document.getElementById("caseOfficerField").classList.add("hidden");
+  }
+  loadCases();
  }else{
   otherSection.classList.remove("hidden");
   const info=sectionInfo[key];
@@ -796,18 +980,14 @@ function openSection(key){
    document.getElementById("sectionDescription").textContent=info[1];
   }
  }
-
  sectionView.scrollIntoView({behavior:"smooth"});
 }
-
 document.querySelectorAll(".menu-card").forEach(card=>{
  card.addEventListener("click",()=>openSection(card.dataset.section));
 });
-
 document.getElementById("backButton").addEventListener("click",()=>{
  document.getElementById("sectionView").classList.add("hidden");
 });
-
 document.getElementById("refreshOfficers").addEventListener("click",loadOfficers);
 
 checkSession();
