@@ -53,6 +53,9 @@ app.use(session({
 const createAuthRouter = require("./routes/auth");
 app.use("/api/auth", createAuthRouter(pool));
 
+const createOfficersRouter = require("./routes/officers");
+app.use("/api/officers", createOfficersRouter(pool));
+
 // فحص الموقع وقاعدة البيانات
 app.get("/api/health", async (req, res) => {
   try {
