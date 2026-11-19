@@ -64,6 +64,9 @@ td{color:#e9edf5}
 .audit-unknown{background:#34445b;color:#c4d0df}
 .audit-details{line-height:1.8;min-width:230px}
 .audit-date{white-space:nowrap;color:#aab5c8}
+.network-panel{background:#091323;border:1px solid #34445b;border-radius:8px;overflow:auto}
+.network-panel svg{width:100%;min-width:500px;min-height:300px;display:block}
+.danger{padding:7px 12px;border:0;border-radius:5px;background:#792f36;color:white}
 footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 @media(max-width:600px){
  header{padding:16px}
@@ -233,12 +236,104 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
     </div>
    </div>
 
+   <div id="relationshipsSection" class="hidden">
+    <h2>NETWORK INTELLIGENCE</h2>
+    <p>مركز تحليل وربط العلاقات والمعلومات بين الأشخاص</p>
+
+    <div class="grid">
+     <div class="card">
+      <div class="icon">⌘</div>
+      <div class="stat-number" id="relationshipCount">0</div>
+      <div class="stat-label">إجمالي العلاقات</div>
+     </div>
+     <div class="card">
+      <div class="icon">♙</div>
+      <div class="stat-number" id="networkPersonCount">0</div>
+      <div class="stat-label">الأشخاص المسجلون</div>
+     </div>
+    </div>
+
+    <div class="panel">
+     <h3>إضافة علاقة جديدة</h3>
+     <form id="relationshipForm">
+      <div class="form-grid">
+       <input id="personOne" maxlength="150" placeholder="اسم الشخص الأول" required>
+       <input id="personTwo" maxlength="150" placeholder="اسم الشخص الثاني" required>
+       <select id="relationshipType">
+        <option value="">اختر نوع العلاقة</option>
+        <option value="شراكة">شراكة</option>
+        <option value="قرابة">قرابة</option>
+        <option value="صداقة">صداقة</option>
+        <option value="عداوة">عداوة</option>
+        <option value="عمل">عمل</option>
+        <option value="اتصال">اتصال</option>
+        <option value="مشتبه به">مشتبه به</option>
+        <option value="أخرى">أخرى</option>
+       </select>
+      </div>
+      <input id="relationshipNotes" maxlength="5000" placeholder="ملاحظات وتفاصيل العلاقة">
+      <button class="primary full" id="addRelationshipButton" type="submit">إضافة العلاقة إلى الشبكة</button>
+     </form>
+     <div id="relationshipMessage" class="message"></div>
+    </div>
+
+    <div class="panel">
+     <h3>خريطة شبكة العلاقات</h3>
+     <p>تصور بصري للأشخاص والروابط المسجلة في النظام.</p>
+     <div class="network-panel">
+      <svg id="networkGraph" viewBox="0 0 800 440">
+       <text x="400" y="220" text-anchor="middle" fill="#aab5c8" font-size="17">لا توجد علاقات لعرضها</text>
+      </svg>
+     </div>
+    </div>
+
+    <div class="panel">
+     <h3>قاعدة بيانات العلاقات</h3>
+     <div class="audit-toolbar">
+      <input id="relationshipSearch" type="search" placeholder="ابحث عن شخص أو علاقة...">
+      <select id="relationshipFilter">
+       <option value="all">جميع العلاقات</option>
+       <option value="شراكة">شراكة</option>
+       <option value="قرابة">قرابة</option>
+       <option value="صداقة">صداقة</option>
+       <option value="عداوة">عداوة</option>
+       <option value="عمل">عمل</option>
+       <option value="اتصال">اتصال</option>
+       <option value="مشتبه به">مشتبه به</option>
+       <option value="أخرى">أخرى</option>
+      </select>
+      <button class="primary" id="refreshRelationships" type="button">تحديث</button>
+     </div>
+
+     <div id="relationshipListMessage" class="message"></div>
+
+     <div class="table-wrap">
+      <table>
+       <thead>
+        <tr>
+         <th>رقم</th>
+         <th>الشخص الأول</th>
+         <th>نوع العلاقة</th>
+         <th>الشخص الثاني</th>
+         <th>الملاحظات</th>
+         <th>تاريخ الإضافة</th>
+         <th>الإجراء</th>
+        </tr>
+       </thead>
+       <tbody id="relationshipsTable">
+        <tr><td colspan="7">جارٍ تحميل العلاقات...</td></tr>
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+
    <div id="otherSection" class="hidden">
     <h2 id="sectionTitle"></h2>
     <p id="sectionDescription"></p>
    </div>
 
-   <button class="primary full" id="backButton">العودة إلى لوحة القيادة</button>
+   <button class="primary full" id="backButton" type="button">العودة إلى لوحة القيادة</button>
   </section>
  </div>
 </main>
@@ -246,379 +341,744 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 <footer>FEDERAL BUREAU © 2026 — ALL RIGHTS RESERVED</footer>
 
 <script>
-const loginPage=document.getElementById("loginPage");
-const dashboardPage=document.getElementById("dashboardPage");
-const loginForm=document.getElementById("loginForm");
-const loginButton=document.getElementById("loginButton");
-const loginMessage=document.getElementById("loginMessage");
+const loginPage = document.getElementById("loginPage");
+const dashboardPage = document.getElementById("dashboardPage");
+const loginForm = document.getElementById("loginForm");
+const loginButton = document.getElementById("loginButton");
+const loginMessage = document.getElementById("loginMessage");
 
-let currentOfficer=null;
-let auditLogsCache=[];
+let currentOfficer = null;
+let auditLogsCache = [];
+let relationshipsData = [];
 
-function isAdmin(){
- return currentOfficer&&String(currentOfficer.role||"").toLowerCase()==="admin";
+function isAdmin() {
+ return currentOfficer &&
+  String(currentOfficer.role || "").toLowerCase() === "admin";
 }
 
-function showLogin(){
- currentOfficer=null;
+function showLogin() {
+ currentOfficer = null;
  dashboardPage.classList.add("hidden");
  loginPage.classList.remove("hidden");
+ document.getElementById("sectionView").classList.add("hidden");
 }
 
-function showDashboard(officer){
- currentOfficer=officer;
+function showDashboard(officer) {
+ currentOfficer = officer;
  loginPage.classList.add("hidden");
  dashboardPage.classList.remove("hidden");
 
- document.getElementById("officerName").textContent=officer.full_name||officer.username;
- document.getElementById("officerRank").textContent="الرتبة: "+(officer.rank||"غير محددة");
+ document.getElementById("officerName").textContent =
+  officer.full_name || officer.username;
 
- document.getElementById("auditMenuCard").classList.toggle("hidden",!isAdmin());
+ document.getElementById("officerRank").textContent =
+  "الرتبة: " + (officer.rank || "غير محددة");
+
+ document.getElementById("auditMenuCard").classList.toggle("hidden", !isAdmin());
 }
 
-async function checkSession(){
- try{
-  const response=await fetch("/api/auth/me",{credentials:"same-origin"});
-  if(!response.ok){showLogin();return;}
-  const data=await response.json();
-  if(data.authenticated&&data.officer){showDashboard(data.officer);}
-  else{showLogin();}
- }catch(error){showLogin();}
-}
-
-loginForm.addEventListener("submit",async event=>{
- event.preventDefault();
- loginButton.disabled=true;
- loginButton.textContent="جارٍ التحقق...";
- loginMessage.textContent="";
-
- try{
-  const response=await fetch("/api/auth/login",{
-   method:"POST",
-   headers:{"Content-Type":"application/json"},
-   credentials:"same-origin",
-   body:JSON.stringify({
-    username:document.getElementById("username").value.trim(),
-    password:document.getElementById("password").value
-   })
+// التحقق من الجلسة
+async function checkSession() {
+ try {
+  const response = await fetch("/api/auth/me", {
+   credentials: "same-origin"
   });
 
-  const data=await response.json();
-  if(!response.ok)throw new Error(data.error||"تعذر تسجيل الدخول");
-  if(!data.officer)throw new Error("لم يتم استلام بيانات الضابط");
-
-  loginForm.reset();
-  showDashboard(data.officer);
- }catch(error){
-  loginMessage.style.color="#ff8585";
-  loginMessage.textContent=error.message;
- }finally{
-  loginButton.disabled=false;
-  loginButton.textContent="دخول النظام";
- }
-});
-
-document.getElementById("logoutButton").addEventListener("click",async()=>{
- try{
-  const response=await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});
-  if(!response.ok)throw new Error("تعذر تسجيل الخروج");
-  showLogin();
- }catch(error){alert(error.message);}
-});
-
-const sectionInfo={
- wanted:["المطلوبون","سيتم تفعيل ملفات المطلوبين وربطها بقاعدة البيانات في المرحلة القادمة."],
- cases:["ملفات القضايا","سيتم تفعيل إدارة القضايا والتحقيقات في المرحلة القادمة."],
- reports:["التقارير الأمنية","سيتم تفعيل إنشاء التقارير ومراجعتها في المرحلة القادمة."],
- evidence:["الأدلة والمرفقات","سيتم تفعيل حفظ الأدلة والوثائق في المرحلة القادمة."],
- relationships:["شبكة العلاقات","سيتم تفعيل ربط الأشخاص والقضايا والمعلومات في المرحلة القادمة."],
- permissions:["الصلاحيات","سيتم تطوير إدارة الصلاحيات في المرحلة القادمة."]
-};
-
-async function loadOfficers(){
- const tbody=document.getElementById("officersTable");
- const message=document.getElementById("listMessage");
-
- tbody.innerHTML='<tr><td colspan="6">جارٍ تحميل البيانات...</td></tr>';
- message.textContent="";
-
- try{
-  const response=await fetch("/api/officers",{credentials:"same-origin"});
-  const data=await response.json();
-  if(!response.ok)throw new Error(data.error||"تعذر تحميل قائمة الضباط");
-
-  const officers=data.officers||[];
-  document.getElementById("officerCount").textContent=officers.length;
-
-  if(officers.length===0){
-   tbody.innerHTML='<tr><td colspan="6">لا يوجد ضباط مسجلون.</td></tr>';
+  if (!response.ok) {
+   showLogin();
    return;
   }
 
-  tbody.innerHTML="";
+  const data = await response.json();
 
-  officers.forEach(officer=>{
-   const tr=document.createElement("tr");
+  if (data.authenticated && data.officer) {
+   showDashboard(data.officer);
+  } else {
+   showLogin();
+  }
+ } catch (error) {
+  showLogin();
+ }
+}
 
-   const values=[
+// تسجيل الدخول
+loginForm.addEventListener("submit", async event => {
+ event.preventDefault();
+
+ loginButton.disabled = true;
+ loginButton.textContent = "جارٍ التحقق...";
+ loginMessage.textContent = "";
+
+ try {
+  const response = await fetch("/api/auth/login", {
+   method: "POST",
+   headers: {"Content-Type": "application/json"},
+   credentials: "same-origin",
+   body: JSON.stringify({
+    username: document.getElementById("username").value.trim(),
+    password: document.getElementById("password").value
+   })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+   throw new Error(data.error || "تعذر تسجيل الدخول");
+  }
+
+  if (!data.officer) {
+   throw new Error("لم يتم استلام بيانات الضابط");
+  }
+
+  loginForm.reset();
+  showDashboard(data.officer);
+
+ } catch (error) {
+  loginMessage.style.color = "#ff8585";
+  loginMessage.textContent = error.message;
+ } finally {
+  loginButton.disabled = false;
+  loginButton.textContent = "دخول النظام";
+ }
+});
+
+// تسجيل الخروج
+document.getElementById("logoutButton").addEventListener("click", async () => {
+ try {
+  const response = await fetch("/api/auth/logout", {
+   method: "POST",
+   credentials: "same-origin"
+  });
+
+  if (!response.ok) {
+   throw new Error("تعذر تسجيل الخروج");
+  }
+
+  showLogin();
+
+ } catch (error) {
+  alert(error.message);
+ }
+});
+
+// الأقسام غير المفعلة بعد
+const sectionInfo = {
+ wanted: ["المطلوبون", "سيتم تفعيل ملفات المطلوبين وربطها بقاعدة البيانات في المرحلة القادمة."],
+ cases: ["ملفات القضايا", "سيتم تفعيل إدارة القضايا والتحقيقات في المرحلة القادمة."],
+ reports: ["التقارير الأمنية", "سيتم تفعيل إنشاء التقارير ومراجعتها في المرحلة القادمة."],
+ evidence: ["الأدلة والمرفقات", "سيتم تفعيل حفظ الأدلة والوثائق في المرحلة القادمة."],
+ permissions: ["الصلاحيات", "سيتم تطوير إدارة الصلاحيات في المرحلة القادمة."]
+};
+
+// تحميل الضباط
+async function loadOfficers() {
+ const tbody = document.getElementById("officersTable");
+ const message = document.getElementById("listMessage");
+
+ tbody.innerHTML = '<tr><td colspan="6">جارٍ تحميل البيانات...</td></tr>';
+ message.textContent = "";
+
+ try {
+  const response = await fetch("/api/officers", {
+   credentials: "same-origin"
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+   throw new Error(data.error || "تعذر تحميل قائمة الضباط");
+  }
+
+  const officers = data.officers || [];
+  document.getElementById("officerCount").textContent = officers.length;
+
+  if (officers.length === 0) {
+   tbody.innerHTML = '<tr><td colspan="6">لا يوجد ضباط مسجلون.</td></tr>';
+   return;
+  }
+
+  tbody.innerHTML = "";
+
+  officers.forEach(officer => {
+   const tr = document.createElement("tr");
+
+   const values = [
     officer.full_name,
     officer.username,
     officer.rank,
     officer.role,
-    officer.active?"نشط":"معطل"
+    officer.active ? "نشط" : "معطل"
    ];
 
-   values.forEach((value,index)=>{
-    const td=document.createElement("td");
-    td.textContent=value??"-";
+   values.forEach((value, index) => {
+    const td = document.createElement("td");
+    td.textContent = value ?? "-";
 
-    if(index===4){
-     td.className=officer.active?"active-label":"disabled-label";
+    if (index === 4) {
+     td.className = officer.active ? "active-label" : "disabled-label";
     }
 
     tr.appendChild(td);
    });
 
-   const actions=document.createElement("td");
+   const actions = document.createElement("td");
 
-   if(isAdmin()&&String(officer.role||"").toLowerCase()!=="admin"){
-    const statusButton=document.createElement("button");
-    statusButton.className="small-button";
-    statusButton.textContent=officer.active?"تعطيل":"تفعيل";
+   if (isAdmin() && String(officer.role || "").toLowerCase() !== "admin") {
+    const statusButton = document.createElement("button");
+    statusButton.className = "small-button";
+    statusButton.textContent = officer.active ? "تعطيل" : "تفعيل";
 
-    statusButton.addEventListener("click",async()=>{
-     const question=officer.active
-      ?"هل تريد تعطيل حساب "+officer.full_name+"؟"
-      :"هل تريد تفعيل حساب "+officer.full_name+"؟";
+    statusButton.addEventListener("click", async () => {
+     const question = officer.active
+      ? "هل تريد تعطيل حساب " + officer.full_name + "؟"
+      : "هل تريد تفعيل حساب " + officer.full_name + "؟";
 
-     if(!confirm(question))return;
+     if (!confirm(question)) return;
 
-     statusButton.disabled=true;
+     statusButton.disabled = true;
 
-     try{
-      const response=await fetch(
+     try {
+      const response = await fetch(
        `/api/officers/${encodeURIComponent(officer.id)}/status`,
        {
-        method:"PATCH",
-        headers:{"Content-Type":"application/json"},
-        credentials:"same-origin",
-        body:JSON.stringify({active:!officer.active})
+        method: "PATCH",
+        headers: {"Content-Type": "application/json"},
+        credentials: "same-origin",
+        body: JSON.stringify({active: !officer.active})
        }
       );
 
-      const data=await response.json();
-      if(!response.ok)throw new Error(data.error||"تعذر تعديل الحساب");
+      const data = await response.json();
+
+      if (!response.ok) {
+       throw new Error(data.error || "تعذر تعديل الحساب");
+      }
 
       await loadOfficers();
-     }catch(error){
+
+     } catch (error) {
       alert(error.message);
-      statusButton.disabled=false;
+      statusButton.disabled = false;
      }
     });
 
-    const deleteButton=document.createElement("button");
-    deleteButton.className="delete-button";
-    deleteButton.textContent="حذف";
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "delete-button";
+    deleteButton.textContent = "حذف";
 
-    deleteButton.addEventListener("click",async()=>{
-     const confirmed=confirm(
-      "تحذير: هل أنت متأكد من حذف حساب "+officer.full_name+" نهائياً؟"
+    deleteButton.addEventListener("click", async () => {
+     const confirmed = confirm(
+      "تحذير: هل أنت متأكد من حذف حساب " + officer.full_name + " نهائياً؟"
      );
 
-     if(!confirmed)return;
+     if (!confirmed) return;
 
-     deleteButton.disabled=true;
+     deleteButton.disabled = true;
 
-     try{
-      const response=await fetch(
+     try {
+      const response = await fetch(
        `/api/officers/${encodeURIComponent(officer.id)}`,
        {
-        method:"DELETE",
-        credentials:"same-origin"
+        method: "DELETE",
+        credentials: "same-origin"
        }
       );
 
-      const data=await response.json();
-      if(!response.ok)throw new Error(data.error||"تعذر حذف الحساب");
+      const data = await response.json();
+
+      if (!response.ok) {
+       throw new Error(data.error || "تعذر حذف الحساب");
+      }
 
       alert("تم حذف حساب العميل بنجاح.");
       await loadOfficers();
-     }catch(error){
+
+     } catch (error) {
       alert(error.message);
-      deleteButton.disabled=false;
+      deleteButton.disabled = false;
      }
     });
 
     actions.appendChild(statusButton);
     actions.appendChild(deleteButton);
-   }else{
-    actions.textContent="—";
+   } else {
+    actions.textContent = "—";
    }
 
    tr.appendChild(actions);
    tbody.appendChild(tr);
   });
 
- }catch(error){
-  tbody.innerHTML='<tr><td colspan="6">تعذر تحميل البيانات.</td></tr>';
-  message.style.color="#ff8585";
-  message.textContent=error.message;
+ } catch (error) {
+  tbody.innerHTML = '<tr><td colspan="6">تعذر تحميل البيانات.</td></tr>';
+  message.style.color = "#ff8585";
+  message.textContent = error.message;
  }
 }
 
-// أسماء العمليات المعروضة
-function auditActionInfo(action){
- const types={
-  CREATE_OFFICER:{label:"إنشاء حساب",className:"audit-create"},
-  DISABLE_OFFICER:{label:"تعطيل حساب",className:"audit-disable"},
-  ACTIVATE_OFFICER:{label:"تفعيل حساب",className:"audit-activate"},
-  DELETE_OFFICER:{label:"حذف حساب",className:"audit-delete"}
+// أسماء عمليات سجل العمليات
+function auditActionInfo(action) {
+ const types = {
+  CREATE_OFFICER: {label: "إنشاء حساب", className: "audit-create"},
+  DISABLE_OFFICER: {label: "تعطيل حساب", className: "audit-disable"},
+  ACTIVATE_OFFICER: {label: "تفعيل حساب", className: "audit-activate"},
+  DELETE_OFFICER: {label: "حذف حساب", className: "audit-delete"}
  };
 
- return types[action]||{label:action||"عملية أخرى",className:"audit-unknown"};
+ return types[action] || {
+  label: action || "عملية أخرى",
+  className: "audit-unknown"
+ };
 }
 
-// عرض التاريخ والوقت
-function formatAuditDate(value){
- if(!value)return "-";
+// تنسيق التاريخ
+function formatAuditDate(value) {
+ if (!value) return "-";
 
- const date=new Date(value);
- if(Number.isNaN(date.getTime()))return "-";
+ const date = new Date(value);
 
- return new Intl.DateTimeFormat("ar-SA",{
-  dateStyle:"medium",
-  timeStyle:"short"
+ if (Number.isNaN(date.getTime())) return "-";
+
+ return new Intl.DateTimeFormat("ar-SA", {
+  dateStyle: "medium",
+  timeStyle: "short"
  }).format(date);
 }
 
-// رسم السجل بعد تطبيق البحث والتصفية
-function renderAuditLogs(){
- const tbody=document.getElementById("auditTable");
- const search=document.getElementById("auditSearch").value.trim().toLowerCase();
- const filter=document.getElementById("auditFilter").value;
+// عرض سجل العمليات
+function renderAuditLogs() {
+ const tbody = document.getElementById("auditTable");
+ const search = document.getElementById("auditSearch").value.trim().toLowerCase();
+ const filter = document.getElementById("auditFilter").value;
 
- const filtered=auditLogsCache.filter(log=>{
-  const matchesType=filter==="all"||log.action===filter;
+ const filtered = auditLogsCache.filter(log => {
+  const matchesType = filter === "all" || log.action === filter;
 
-  const searchable=[
+  const searchable = [
    log.action,
    log.details,
    log.admin_username,
    log.admin_name
   ].join(" ").toLowerCase();
 
-  return matchesType&&searchable.includes(search);
+  return matchesType && searchable.includes(search);
  });
 
- tbody.innerHTML="";
+ tbody.innerHTML = "";
 
- if(filtered.length===0){
-  tbody.innerHTML='<tr><td colspan="5">لا توجد عمليات مطابقة للبحث.</td></tr>';
+ if (filtered.length === 0) {
+  tbody.innerHTML = '<tr><td colspan="5">لا توجد عمليات مطابقة للبحث.</td></tr>';
   return;
  }
 
- filtered.forEach(log=>{
-  const tr=document.createElement("tr");
+ filtered.forEach(log => {
+  const tr = document.createElement("tr");
 
-  const idCell=document.createElement("td");
-  idCell.textContent=log.id??"-";
+  const idCell = document.createElement("td");
+  idCell.textContent = log.id ?? "-";
   tr.appendChild(idCell);
 
-  const actionCell=document.createElement("td");
-  const info=auditActionInfo(log.action);
-  const badge=document.createElement("span");
-  badge.className="audit-badge "+info.className;
-  badge.textContent=info.label;
+  const actionCell = document.createElement("td");
+  const info = auditActionInfo(log.action);
+  const badge = document.createElement("span");
+
+  badge.className = "audit-badge " + info.className;
+  badge.textContent = info.label;
+
   actionCell.appendChild(badge);
   tr.appendChild(actionCell);
 
-  const adminCell=document.createElement("td");
-  adminCell.textContent=log.admin_name||log.admin_username||"مدير غير معروف";
+  const adminCell = document.createElement("td");
+  adminCell.textContent = log.admin_name || log.admin_username || "مدير غير معروف";
   tr.appendChild(adminCell);
 
-  const detailsCell=document.createElement("td");
-  detailsCell.className="audit-details";
-  detailsCell.textContent=log.details||"-";
+  const detailsCell = document.createElement("td");
+  detailsCell.className = "audit-details";
+  detailsCell.textContent = log.details || "-";
   tr.appendChild(detailsCell);
 
-  const dateCell=document.createElement("td");
-  dateCell.className="audit-date";
-  dateCell.textContent=formatAuditDate(log.created_at);
+  const dateCell = document.createElement("td");
+  dateCell.className = "audit-date";
+  dateCell.textContent = formatAuditDate(log.created_at);
   tr.appendChild(dateCell);
 
   tbody.appendChild(tr);
  });
 }
 
-// تحميل السجل من الخادم
-async function loadAuditLogs(){
- const tbody=document.getElementById("auditTable");
- const message=document.getElementById("auditMessage");
- const button=document.getElementById("refreshAudit");
+// تحميل سجل العمليات
+async function loadAuditLogs() {
+ const tbody = document.getElementById("auditTable");
+ const message = document.getElementById("auditMessage");
+ const button = document.getElementById("refreshAudit");
 
- if(!isAdmin()){
-  message.style.color="#ff8585";
-  message.textContent="ليست لديك صلاحية عرض سجل العمليات.";
+ if (!isAdmin()) {
+  message.style.color = "#ff8585";
+  message.textContent = "ليست لديك صلاحية عرض سجل العمليات.";
   return;
  }
 
- tbody.innerHTML='<tr><td colspan="5">جارٍ تحميل سجل العمليات...</td></tr>';
- message.textContent="";
- button.disabled=true;
+ tbody.innerHTML = '<tr><td colspan="5">جارٍ تحميل سجل العمليات...</td></tr>';
+ message.textContent = "";
+ button.disabled = true;
 
- try{
-  const response=await fetch("/api/audit-logs",{
-   credentials:"same-origin"
+ try {
+  const response = await fetch("/api/audit-logs", {
+   credentials: "same-origin"
   });
 
-  const data=await response.json();
+  const data = await response.json();
 
-  if(!response.ok){
-   throw new Error(data.error||"تعذر تحميل سجل العمليات");
+  if (!response.ok) {
+   throw new Error(data.error || "تعذر تحميل سجل العمليات");
   }
 
-  auditLogsCache=data.logs||[];
+  auditLogsCache = data.logs || [];
   renderAuditLogs();
 
-  message.style.color="#83d6a8";
-  message.textContent="تم تحميل "+auditLogsCache.length+" عملية بنجاح.";
+  message.style.color = "#83d6a8";
+  message.textContent = "تم تحميل " + auditLogsCache.length + " عملية بنجاح.";
 
- }catch(error){
-  auditLogsCache=[];
-  tbody.innerHTML='<tr><td colspan="5">تعذر تحميل سجل العمليات.</td></tr>';
-  message.style.color="#ff8585";
-  message.textContent=error.message;
- }finally{
-  button.disabled=false;
+ } catch (error) {
+  auditLogsCache = [];
+  tbody.innerHTML = '<tr><td colspan="5">تعذر تحميل سجل العمليات.</td></tr>';
+  message.style.color = "#ff8585";
+  message.textContent = error.message;
+ } finally {
+  button.disabled = false;
  }
 }
 
-function openSection(key){
- const sectionView=document.getElementById("sectionView");
- const officersSection=document.getElementById("officersSection");
- const otherSection=document.getElementById("otherSection");
- const auditSection=document.getElementById("auditSection");
+// تحميل شبكة العلاقات من قاعدة البيانات
+async function loadRelationships() {
+ const tbody = document.getElementById("relationshipsTable");
+ const message = document.getElementById("relationshipListMessage");
+
+ tbody.innerHTML = '<tr><td colspan="7">جارٍ تحميل العلاقات...</td></tr>';
+ message.textContent = "";
+
+ try {
+  const response = await fetch("/api/relationships", {
+   credentials: "same-origin"
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+   throw new Error(data.message || data.error || "تعذر تحميل العلاقات");
+  }
+
+  relationshipsData = data.relationships || [];
+  renderRelationships();
+
+ } catch (error) {
+  tbody.innerHTML = '<tr><td colspan="7">تعذر تحميل العلاقات.</td></tr>';
+  message.style.color = "#ff8585";
+  message.textContent = error.message;
+ }
+}
+
+// عرض العلاقات والبحث والتصفية
+function renderRelationships() {
+ const tbody = document.getElementById("relationshipsTable");
+ const search = document.getElementById("relationshipSearch");
+ const filter = document.getElementById("relationshipFilter");
+
+ const searchText = search.value.trim().toLowerCase();
+ const filterValue = filter.value;
+
+ const filtered = relationshipsData.filter(item => {
+  const searchable = [
+   item.person_one,
+   item.person_two,
+   item.relationship_type,
+   item.notes
+  ].join(" ").toLowerCase();
+
+  const matchesSearch = searchable.includes(searchText);
+
+  const matchesFilter =
+   filterValue === "all" ||
+   !filterValue ||
+   item.relationship_type === filterValue;
+
+  return matchesSearch && matchesFilter;
+ });
+
+ tbody.innerHTML = "";
+
+ if (filtered.length === 0) {
+  tbody.innerHTML = '<tr><td colspan="7">لا توجد علاقات مطابقة.</td></tr>';
+ }
+
+ filtered.forEach((item, index) => {
+  const tr = document.createElement("tr");
+
+  const values = [
+   index + 1,
+   item.person_one,
+   item.relationship_type || "غير محدد",
+   item.person_two,
+   item.notes || "لا توجد ملاحظات",
+   item.created_at ? formatAuditDate(item.created_at) : "—"
+  ];
+
+  values.forEach(value => {
+   const td = document.createElement("td");
+   td.textContent = value ?? "-";
+   tr.appendChild(td);
+  });
+
+  const actionCell = document.createElement("td");
+  const deleteButton = document.createElement("button");
+
+  deleteButton.className = "danger";
+  deleteButton.type = "button";
+  deleteButton.textContent = "حذف";
+
+  deleteButton.addEventListener("click", () => {
+   deleteRelationship(item.id);
+  });
+
+  actionCell.appendChild(deleteButton);
+  tr.appendChild(actionCell);
+  tbody.appendChild(tr);
+ });
+
+ document.getElementById("relationshipCount").textContent =
+  relationshipsData.length;
+
+ const people = new Set();
+
+ relationshipsData.forEach(item => {
+  if (item.person_one) people.add(item.person_one);
+  if (item.person_two) people.add(item.person_two);
+ });
+
+ document.getElementById("networkPersonCount").textContent = people.size;
+
+ drawRelationshipGraph();
+}
+
+// إضافة علاقة جديدة
+async function addRelationship(event) {
+ event.preventDefault();
+
+ const message = document.getElementById("relationshipMessage");
+ const button = document.getElementById("addRelationshipButton");
+
+ const personOne = document.getElementById("personOne").value.trim();
+ const personTwo = document.getElementById("personTwo").value.trim();
+ const relationshipType = document.getElementById("relationshipType").value;
+ const notes = document.getElementById("relationshipNotes").value.trim();
+
+ message.textContent = "";
+
+ if (!personOne || !personTwo) {
+  message.style.color = "#ff8585";
+  message.textContent = "يرجى إدخال اسمي الشخصين.";
+  return;
+ }
+
+ if (personOne.toLowerCase() === personTwo.toLowerCase()) {
+  message.style.color = "#ff8585";
+  message.textContent = "لا يمكن ربط الشخص بنفسه.";
+  return;
+ }
+
+ button.disabled = true;
+ button.textContent = "جارٍ إضافة العلاقة...";
+
+ try {
+  const response = await fetch("/api/relationships", {
+   method: "POST",
+   credentials: "same-origin",
+   headers: {"Content-Type": "application/json"},
+   body: JSON.stringify({
+    person_one: personOne,
+    person_two: personTwo,
+    relationship_type: relationshipType,
+    notes: notes
+   })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+   throw new Error(data.message || data.error || "تعذرت إضافة العلاقة");
+  }
+
+  document.getElementById("relationshipForm").reset();
+
+  message.style.color = "#83d6a8";
+  message.textContent = "تمت إضافة العلاقة بنجاح.";
+
+  await loadRelationships();
+
+ } catch (error) {
+  message.style.color = "#ff8585";
+  message.textContent = error.message;
+ } finally {
+  button.disabled = false;
+  button.textContent = "إضافة العلاقة إلى الشبكة";
+ }
+}
+
+// حذف علاقة
+async function deleteRelationship(id) {
+ if (!confirm("هل أنت متأكد من حذف هذه العلاقة؟")) return;
+
+ const message = document.getElementById("relationshipListMessage");
+
+ try {
+  const response = await fetch(
+   `/api/relationships/${encodeURIComponent(id)}`,
+   {
+    method: "DELETE",
+    credentials: "same-origin"
+   }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+   throw new Error(data.message || data.error || "تعذر حذف العلاقة");
+  }
+
+  message.style.color = "#83d6a8";
+  message.textContent = "تم حذف العلاقة بنجاح.";
+
+  await loadRelationships();
+
+ } catch (error) {
+  message.style.color = "#ff8585";
+  message.textContent = error.message;
+ }
+}
+
+// رسم شبكة العلاقات
+function drawRelationshipGraph() {
+ const svg = document.getElementById("networkGraph");
+ if (!svg) return;
+
+ const namespace = "http://www.w3.org/2000/svg";
+ svg.innerHTML = "";
+
+ const people = [...new Set(
+  relationshipsData.flatMap(item => [
+   item.person_one,
+   item.person_two
+  ]).filter(Boolean)
+ )];
+
+ if (people.length === 0) {
+  const text = document.createElementNS(namespace, "text");
+
+  text.setAttribute("x", "400");
+  text.setAttribute("y", "220");
+  text.setAttribute("text-anchor", "middle");
+  text.setAttribute("fill", "#aab5c8");
+  text.setAttribute("font-size", "17");
+  text.textContent = "لا توجد علاقات لعرضها";
+
+  svg.appendChild(text);
+  return;
+ }
+
+ const centerX = 400;
+ const centerY = 200;
+ const radius = Math.min(150, 45 + people.length * 9);
+ const positions = {};
+
+ people.forEach((person, index) => {
+  const angle = (2 * Math.PI * index / people.length) - Math.PI / 2;
+
+  positions[person] = {
+   x: centerX + radius * Math.cos(angle),
+   y: centerY + radius * Math.sin(angle)
+  };
+ });
+
+ // رسم الروابط أولاً
+ relationshipsData.forEach(item => {
+  const first = positions[item.person_one];
+  const second = positions[item.person_two];
+
+  if (!first || !second) return;
+
+  const line = document.createElementNS(namespace, "line");
+
+  line.setAttribute("x1", first.x);
+  line.setAttribute("y1", first.y);
+  line.setAttribute("x2", second.x);
+  line.setAttribute("y2", second.y);
+  line.setAttribute("stroke", "#c5a45b");
+  line.setAttribute("stroke-width", "2");
+  line.setAttribute("opacity", "0.8");
+
+  svg.appendChild(line);
+ });
+
+ // رسم الأشخاص
+ people.forEach(person => {
+  const point = positions[person];
+
+  const group = document.createElementNS(namespace, "g");
+
+  const circle = document.createElementNS(namespace, "circle");
+  circle.setAttribute("cx", point.x);
+  circle.setAttribute("cy", point.y);
+  circle.setAttribute("r", "19");
+  circle.setAttribute("fill", "#172a42");
+  circle.setAttribute("stroke", "#c5a45b");
+  circle.setAttribute("stroke-width", "2");
+
+  const label = document.createElementNS(namespace, "text");
+  label.setAttribute("x", point.x);
+  label.setAttribute("y", point.y + 35);
+  label.setAttribute("text-anchor", "middle");
+  label.setAttribute("fill", "#e9edf5");
+  label.setAttribute("font-size", "12");
+  label.textContent = person.length > 22
+   ? person.substring(0, 22) + "..."
+   : person;
+
+  group.appendChild(circle);
+  group.appendChild(label);
+  svg.appendChild(group);
+ });
+}
+
+// فتح الأقسام
+function openSection(key) {
+ const sectionView = document.getElementById("sectionView");
+ const officersSection = document.getElementById("officersSection");
+ const otherSection = document.getElementById("otherSection");
+ const auditSection = document.getElementById("auditSection");
+ const relationshipsSection = document.getElementById("relationshipsSection");
 
  sectionView.classList.remove("hidden");
 
  officersSection.classList.add("hidden");
  otherSection.classList.add("hidden");
  auditSection.classList.add("hidden");
+ relationshipsSection.classList.add("hidden");
 
- if(key==="officers"){
+ if (key === "officers") {
   officersSection.classList.remove("hidden");
 
-  const admin=isAdmin();
-  document.getElementById("adminOnly").classList.toggle("hidden",!admin);
-  document.getElementById("officerAccessMessage").classList.toggle("hidden",admin);
+  const admin = isAdmin();
 
-  document.getElementById("officerAccessMessage").textContent=
-   admin?"":"عرض قائمة الضباط متاح، لكن إنشاء الحسابات وإدارة الحسابات يتطلب صلاحية المدير.";
+  document.getElementById("adminOnly").classList.toggle("hidden", !admin);
+  document.getElementById("officerAccessMessage").classList.toggle("hidden", admin);
+
+  document.getElementById("officerAccessMessage").textContent =
+   admin ? "" : "عرض قائمة الضباط متاح، لكن إنشاء الحسابات وإدارة الحسابات يتطلب صلاحية المدير.";
 
   loadOfficers();
 
- }else if(key==="audit"){
-  if(!isAdmin()){
+ } else if (key === "audit") {
+  if (!isAdmin()) {
    alert("ليست لديك صلاحية عرض سجل العمليات.");
    sectionView.classList.add("hidden");
    return;
@@ -627,81 +1087,105 @@ function openSection(key){
   auditSection.classList.remove("hidden");
   loadAuditLogs();
 
- }else{
+ } else if (key === "relationships") {
+  relationshipsSection.classList.remove("hidden");
+  loadRelationships();
+
+ } else {
   otherSection.classList.remove("hidden");
 
-  const info=sectionInfo[key];
+  const info = sectionInfo[key];
 
-  if(info){
-   document.getElementById("sectionTitle").textContent=info[0];
-   document.getElementById("sectionDescription").textContent=info[1];
+  if (info) {
+   document.getElementById("sectionTitle").textContent = info[0];
+   document.getElementById("sectionDescription").textContent = info[1];
   }
  }
 
- sectionView.scrollIntoView({behavior:"smooth"});
+ sectionView.scrollIntoView({behavior: "smooth"});
 }
 
-document.querySelectorAll(".menu-card").forEach(card=>{
- card.addEventListener("click",()=>openSection(card.dataset.section));
+// أزرار لوحة القيادة
+document.querySelectorAll(".menu-card").forEach(card => {
+ card.addEventListener("click", () => {
+  openSection(card.dataset.section);
+ });
 });
 
-document.getElementById("backButton").addEventListener("click",()=>{
+// العودة إلى لوحة القيادة
+document.getElementById("backButton").addEventListener("click", () => {
  document.getElementById("sectionView").classList.add("hidden");
 });
 
-document.getElementById("refreshOfficers").addEventListener("click",loadOfficers);
-document.getElementById("refreshAudit").addEventListener("click",loadAuditLogs);
+// تحديث البيانات
+document.getElementById("refreshOfficers").addEventListener("click", loadOfficers);
+document.getElementById("refreshAudit").addEventListener("click", loadAuditLogs);
+document.getElementById("refreshRelationships").addEventListener("click", loadRelationships);
 
-document.getElementById("auditSearch").addEventListener("input",renderAuditLogs);
-document.getElementById("auditFilter").addEventListener("change",renderAuditLogs);
+// البحث والتصفية
+document.getElementById("auditSearch").addEventListener("input", renderAuditLogs);
+document.getElementById("auditFilter").addEventListener("change", renderAuditLogs);
 
-document.getElementById("officerForm").addEventListener("submit",async event=>{
+document.getElementById("relationshipSearch").addEventListener("input", renderRelationships);
+document.getElementById("relationshipFilter").addEventListener("change", renderRelationships);
+
+// نموذج إضافة علاقة
+document.getElementById("relationshipForm").addEventListener("submit", addRelationship);
+
+// إنشاء حساب ضابط
+document.getElementById("officerForm").addEventListener("submit", async event => {
  event.preventDefault();
 
- if(!isAdmin()){
-  document.getElementById("createMessage").textContent="ليس لديك صلاحية إنشاء الحسابات.";
+ if (!isAdmin()) {
+  document.getElementById("createMessage").textContent =
+   "ليس لديك صلاحية إنشاء الحسابات.";
   return;
  }
 
- const button=document.getElementById("createOfficerButton");
- const message=document.getElementById("createMessage");
+ const button = document.getElementById("createOfficerButton");
+ const message = document.getElementById("createMessage");
 
- button.disabled=true;
- button.textContent="جارٍ إنشاء الحساب...";
- message.textContent="";
+ button.disabled = true;
+ button.textContent = "جارٍ إنشاء الحساب...";
+ message.textContent = "";
 
- const payload={
-  full_name:document.getElementById("newFullName").value.trim(),
-  username:document.getElementById("newUsername").value.trim(),
-  password:document.getElementById("newPassword").value,
-  rank:document.getElementById("newRank").value
+ const payload = {
+  full_name: document.getElementById("newFullName").value.trim(),
+  username: document.getElementById("newUsername").value.trim(),
+  password: document.getElementById("newPassword").value,
+  rank: document.getElementById("newRank").value
  };
 
- try{
-  const response=await fetch("/api/officers",{
-   method:"POST",
-   headers:{"Content-Type":"application/json"},
-   credentials:"same-origin",
-   body:JSON.stringify(payload)
+ try {
+  const response = await fetch("/api/officers", {
+   method: "POST",
+   headers: {"Content-Type": "application/json"},
+   credentials: "same-origin",
+   body: JSON.stringify(payload)
   });
 
-  const data=await response.json();
-  if(!response.ok)throw new Error(data.error||"تعذر إنشاء الحساب");
+  const data = await response.json();
 
-  message.style.color="#83d6a8";
-  message.textContent="تم إنشاء حساب الضابط بنجاح.";
+  if (!response.ok) {
+   throw new Error(data.error || "تعذر إنشاء الحساب");
+  }
+
+  message.style.color = "#83d6a8";
+  message.textContent = "تم إنشاء حساب الضابط بنجاح.";
+
   event.target.reset();
   await loadOfficers();
 
- }catch(error){
-  message.style.color="#ff8585";
-  message.textContent=error.message;
- }finally{
-  button.disabled=false;
-  button.textContent="إنشاء حساب الضابط";
+ } catch (error) {
+  message.style.color = "#ff8585";
+  message.textContent = error.message;
+ } finally {
+  button.disabled = false;
+  button.textContent = "إنشاء حساب الضابط";
  }
 });
 
+// بدء النظام
 checkSession();
 </script>
 </body>
