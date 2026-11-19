@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 
 const express = require("express");
@@ -49,12 +50,56 @@ app.use(session({
   }
 }));
 
+// التحقق من صلاحية المدير
+function requireAdmin(req, res, next) {
+  if (!req.session.officer) {
+    return res.status(401).json({
+      error: "يجب تسجيل الدخول أولاً"
+    });
+  }
+
+  if (String(req.session.officer.role).toLowerCase() !== "admin") {
+    return res.status(403).json({
+      error: "ليست لديك صلاحية عرض سجل العمليات"
+    });
+  }
+
+  next();
+}
+
 // تسجيل الدخول والخروج
 const createAuthRouter = require("./routes/auth");
 app.use("/api/auth", createAuthRouter(pool));
 
+// إدارة العملاء
 const createOfficersRouter = require("./routes/officers");
 app.use("/api/officers", createOfficersRouter(pool));
+
+// سجل العمليات - للمدير فقط
+app.get("/api/audit-logs", requireAdmin, async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+         a.id,
+         a.action,
+         a.details,
+         a.created_at,
+         o.username AS admin_username,
+         o.full_name AS admin_name
+       FROM audit_logs a
+       LEFT JOIN officers o ON o.id = a.officer_id
+       ORDER BY a.created_at DESC
+       LIMIT 100`
+    );
+
+    res.json({
+      success: true,
+      logs: result.rows
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // فحص الموقع وقاعدة البيانات
 app.get("/api/health", async (req, res) => {
