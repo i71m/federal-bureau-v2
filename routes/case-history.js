@@ -9,42 +9,23 @@ module.exports = (pool) => {
                 error: "يجب تسجيل الدخول أولاً."
             });
         }
-
         next();
     }
 
     router.use(requireLogin);
 
-    // عرض السجل التاريخي لقضية
+    // عرض السجل التاريخي
     router.get("/:caseId", async (req, res) => {
         const { caseId } = req.params;
 
         if (!/^\d+$/.test(caseId)) {
-            return res.status(400).json({
-                error: "رقم القضية غير صالح."
-            });
+            return res.status(400).json({ error: "رقم القضية غير صالح." });
         }
 
         try {
-            const caseResult = await pool.query(
-                "SELECT id FROM cases WHERE id = $1",
-                [caseId]
-            );
-
-            if (!caseResult.rows.length) {
-                return res.status(404).json({
-                    error: "القضية غير موجودة."
-                });
-            }
-
             const result = await pool.query(
                 `SELECT
-                    ch.id,
-                    ch.case_id,
-                    ch.action,
-                    ch.details,
-                    ch.created_at,
-                    o.id AS officer_id,
+                    ch.*,
                     o.username AS officer_username,
                     o.full_name AS officer_name,
                     o.rank AS officer_rank
@@ -55,26 +36,24 @@ module.exports = (pool) => {
                 [caseId]
             );
 
-            res.json(result.rows);
+            res.json({
+                success: true,
+                history: result.rows
+            });
         } catch (error) {
             console.error("Case history error:", error);
-
-            res.status(500).json({
-                error: "تعذر تحميل سجل القضية."
-            });
+            res.status(500).json({ error: "تعذر تحميل سجل القضية." });
         }
     });
 
-    // إضافة ملاحظة أو تحديث إلى سجل القضية
+    // إضافة إجراء إلى السجل التاريخي
     router.post("/:caseId", async (req, res) => {
         const { caseId } = req.params;
         const { action, details } = req.body;
         const officerId = req.session.officer.id;
 
         if (!/^\d+$/.test(caseId)) {
-            return res.status(400).json({
-                error: "رقم القضية غير صالح."
-            });
+            return res.status(400).json({ error: "رقم القضية غير صالح." });
         }
 
         const allowedActions = [
@@ -87,9 +66,7 @@ module.exports = (pool) => {
         ];
 
         if (!allowedActions.includes(action)) {
-            return res.status(400).json({
-                error: "نوع العملية غير صالح."
-            });
+            return res.status(400).json({ error: "نوع العملية غير صالح." });
         }
 
         if (
@@ -107,52 +84,132 @@ module.exports = (pool) => {
         try {
             await client.query("BEGIN");
 
-            const caseResult = await client.query(
-                "SELECT id FROM cases WHERE id = $1 FOR UPDATE",
-                [caseId]
-            );
-
-            if (!caseResult.rows.length) {
-                await client.query("ROLLBACK");
-
-                return res.status(404).json({
-                    error: "القضية غير موجودة."
-                });
-            }
-
             const result = await client.query(
                 `INSERT INTO case_history
                     (case_id, officer_id, action, details)
-                 VALUES ($1, $2, $3, $4)
+                 SELECT id, $2, $3, $4
+                 FROM cases
+                 WHERE id = $1
                  RETURNING *`,
                 [caseId, officerId, action, details.trim()]
             );
 
+            if (!result.rows.length) {
+                await client.query("ROLLBACK");
+                return res.status(404).json({ error: "القضية غير موجودة." });
+            }
+
             await client.query(
-                `INSERT INTO audit_logs
-                    (officer_id, action, details)
+                `INSERT INTO audit_logs (officer_id, action, details)
+                 VALUES ($1, $2, $3)`,
+                [officerId, "CASE_HISTORY_ADDED", `Case ID: ${caseId} | Action: ${action}`]
+            );
+
+            await client.query("COMMIT");
+
+            res.status(201).json({
+                success: true,
+                message: "تمت إضافة التحديث إلى سجل القضية.",
+                history: result.rows[0]
+            });
+        } catch (error) {
+            await client.query("ROLLBACK").catch(() => {});
+            console.error("Add case history error:", error);
+            res.status(500).json({ error: "تعذرت إضافة التحديث." });
+        } finally {
+            client.release();
+        }
+    });
+
+    // عرض ملاحظات القضية
+    router.get("/notes/:caseId", async (req, res) => {
+        const { caseId } = req.params;
+
+        if (!/^\d+$/.test(caseId)) {
+            return res.status(400).json({ error: "رقم القضية غير صالح." });
+        }
+
+        try {
+            const result = await pool.query(
+                `SELECT
+                    n.*,
+                    o.username AS officer_username,
+                    o.full_name AS officer_name,
+                    o.rank AS officer_rank
+                 FROM case_notes n
+                 LEFT JOIN officers o ON o.id = n.officer_id
+                 WHERE n.case_id = $1
+                 ORDER BY n.created_at DESC, n.id DESC`,
+                [caseId]
+            );
+
+            res.json({
+                success: true,
+                notes: result.rows
+            });
+        } catch (error) {
+            console.error("Case notes error:", error);
+            res.status(500).json({ error: "تعذر تحميل ملاحظات القضية." });
+        }
+    });
+
+    // إضافة ملاحظة للقضية
+    router.post("/notes/:caseId", async (req, res) => {
+        const { caseId } = req.params;
+        const note = typeof req.body.note === "string"
+            ? req.body.note.trim()
+            : "";
+
+        if (!/^\d+$/.test(caseId)) {
+            return res.status(400).json({ error: "رقم القضية غير صالح." });
+        }
+
+        if (!note || note.length > 10000) {
+            return res.status(400).json({
+                error: "يرجى كتابة الملاحظة، وبحد أقصى 10000 حرف."
+            });
+        }
+
+        const client = await pool.connect();
+
+        try {
+            await client.query("BEGIN");
+
+            const result = await client.query(
+                `INSERT INTO case_notes (case_id, officer_id, note)
+                 SELECT id, $2, $3
+                 FROM cases
+                 WHERE id = $1
+                 RETURNING *`,
+                [caseId, req.session.officer.id, note]
+            );
+
+            if (!result.rows.length) {
+                await client.query("ROLLBACK");
+                return res.status(404).json({ error: "القضية غير موجودة." });
+            }
+
+            await client.query(
+                `INSERT INTO audit_logs (officer_id, action, details)
                  VALUES ($1, $2, $3)`,
                 [
-                    officerId,
-                    "CASE_HISTORY_ADDED",
-                    `Case ID: ${caseId} | Action: ${action}`
+                    req.session.officer.id,
+                    "CASE_NOTE_ADDED",
+                    `تمت إضافة ملاحظة للقضية رقم ${caseId}`
                 ]
             );
 
             await client.query("COMMIT");
 
             res.status(201).json({
-                message: "تمت إضافة التحديث إلى سجل القضية.",
-                history: result.rows[0]
+                success: true,
+                message: "تم حفظ الملاحظة بنجاح.",
+                note: result.rows[0]
             });
         } catch (error) {
-            await client.query("ROLLBACK");
-
-            console.error("Add case history error:", error);
-
-            res.status(500).json({
-                error: "تعذرت إضافة التحديث."
-            });
+            await client.query("ROLLBACK").catch(() => {});
+            console.error("Add case note error:", error);
+            res.status(500).json({ error: "تعذرت إضافة الملاحظة." });
         } finally {
             client.release();
         }
