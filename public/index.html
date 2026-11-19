@@ -54,8 +54,24 @@ td{color:#e9edf5}
 .delete-button{padding:7px 12px;border:0;border-radius:5px;background:#792f36;color:white;margin-right:5px}
 .active-label{color:#83d6a8}
 .disabled-label{color:#ff8585}
+.audit-toolbar{display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:center;margin-top:20px}
+.audit-toolbar input,.audit-toolbar select{margin:0}
+.audit-badge{display:inline-block;padding:6px 10px;border-radius:5px;font-size:11px;font-weight:bold;white-space:nowrap}
+.audit-create{background:#244d3b;color:#83d6a8}
+.audit-disable{background:#542b32;color:#ff9b9b}
+.audit-activate{background:#24445a;color:#8dcfff}
+.audit-delete{background:#642c32;color:#ff8585}
+.audit-unknown{background:#34445b;color:#c4d0df}
+.audit-details{line-height:1.8;min-width:230px}
+.audit-date{white-space:nowrap;color:#aab5c8}
 footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
-@media(max-width:600px){header{padding:16px}.brand{font-size:18px}.container{padding:16px}.hero h1{font-size:26px}}
+@media(max-width:600px){
+ header{padding:16px}
+ .brand{font-size:18px}
+ .container{padding:16px}
+ .hero h1{font-size:26px}
+ .audit-toolbar{grid-template-columns:1fr}
+}
 </style>
 </head>
 
@@ -119,10 +135,11 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
    <div class="card menu-card" data-section="evidence"><div class="icon">⬡</div><h3>الأدلة والمرفقات</h3><p>حفظ وتنظيم الأدلة والوثائق.</p></div>
    <div class="card menu-card" data-section="relationships"><div class="icon">⌘</div><h3>شبكة العلاقات</h3><p>ربط الأشخاص والقضايا والمعلومات.</p></div>
    <div class="card menu-card" data-section="permissions"><div class="icon">⬢</div><h3>الصلاحيات</h3><p>إدارة صلاحيات الوصول للنظام.</p></div>
-   <div class="card menu-card" data-section="audit"><div class="icon">▦</div><h3>سجل العمليات</h3><p>مراجعة أنشطة المستخدمين.</p></div>
+   <div class="card menu-card hidden" id="auditMenuCard" data-section="audit"><div class="icon">▦</div><h3>سجل العمليات</h3><p>مراجعة أنشطة المستخدمين والعمليات الإدارية.</p></div>
   </div>
 
   <section id="sectionView" class="panel hidden">
+
    <div id="officersSection" class="hidden">
     <h2>إدارة الضباط</h2>
     <p>إنشاء حسابات الضباط ومراجعة الأفراد المسجلين في النظام.</p>
@@ -180,6 +197,42 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
     </div>
    </div>
 
+   <div id="auditSection" class="hidden">
+    <h2>سجل العمليات الأمنية</h2>
+    <p>مراجعة العمليات الإدارية المسجلة في النظام، مع تحديد المنفّذ والتاريخ والتفاصيل.</p>
+
+    <div class="audit-toolbar">
+     <input id="auditSearch" type="search" placeholder="ابحث باسم العميل أو المدير أو التفاصيل...">
+     <select id="auditFilter">
+      <option value="all">جميع العمليات</option>
+      <option value="CREATE_OFFICER">إنشاء حساب</option>
+      <option value="DISABLE_OFFICER">تعطيل حساب</option>
+      <option value="ACTIVATE_OFFICER">تفعيل حساب</option>
+      <option value="DELETE_OFFICER">حذف حساب</option>
+     </select>
+     <button class="primary" id="refreshAudit">تحديث السجل</button>
+    </div>
+
+    <div id="auditMessage" class="message"></div>
+
+    <div class="table-wrap">
+     <table>
+      <thead>
+       <tr>
+        <th>رقم العملية</th>
+        <th>نوع العملية</th>
+        <th>المدير المنفّذ</th>
+        <th>التفاصيل</th>
+        <th>التاريخ والوقت</th>
+       </tr>
+      </thead>
+      <tbody id="auditTable">
+       <tr><td colspan="5">جارٍ تحميل سجل العمليات...</td></tr>
+      </tbody>
+     </table>
+    </div>
+   </div>
+
    <div id="otherSection" class="hidden">
     <h2 id="sectionTitle"></h2>
     <p id="sectionDescription"></p>
@@ -200,6 +253,11 @@ const loginButton=document.getElementById("loginButton");
 const loginMessage=document.getElementById("loginMessage");
 
 let currentOfficer=null;
+let auditLogsCache=[];
+
+function isAdmin(){
+ return currentOfficer&&String(currentOfficer.role||"").toLowerCase()==="admin";
+}
 
 function showLogin(){
  currentOfficer=null;
@@ -211,8 +269,11 @@ function showDashboard(officer){
  currentOfficer=officer;
  loginPage.classList.add("hidden");
  dashboardPage.classList.remove("hidden");
+
  document.getElementById("officerName").textContent=officer.full_name||officer.username;
  document.getElementById("officerRank").textContent="الرتبة: "+(officer.rank||"غير محددة");
+
+ document.getElementById("auditMenuCard").classList.toggle("hidden",!isAdmin());
 }
 
 async function checkSession(){
@@ -230,6 +291,7 @@ loginForm.addEventListener("submit",async event=>{
  loginButton.disabled=true;
  loginButton.textContent="جارٍ التحقق...";
  loginMessage.textContent="";
+
  try{
   const response=await fetch("/api/auth/login",{
    method:"POST",
@@ -240,9 +302,11 @@ loginForm.addEventListener("submit",async event=>{
     password:document.getElementById("password").value
    })
   });
+
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر تسجيل الدخول");
   if(!data.officer)throw new Error("لم يتم استلام بيانات الضابط");
+
   loginForm.reset();
   showDashboard(data.officer);
  }catch(error){
@@ -268,17 +332,13 @@ const sectionInfo={
  reports:["التقارير الأمنية","سيتم تفعيل إنشاء التقارير ومراجعتها في المرحلة القادمة."],
  evidence:["الأدلة والمرفقات","سيتم تفعيل حفظ الأدلة والوثائق في المرحلة القادمة."],
  relationships:["شبكة العلاقات","سيتم تفعيل ربط الأشخاص والقضايا والمعلومات في المرحلة القادمة."],
- permissions:["الصلاحيات","سيتم تطوير إدارة الصلاحيات في المرحلة القادمة."],
- audit:["سجل العمليات","سيتم تفعيل سجل عمليات المستخدمين في المرحلة القادمة."]
+ permissions:["الصلاحيات","سيتم تطوير إدارة الصلاحيات في المرحلة القادمة."]
 };
-
-function isAdmin(){
- return currentOfficer&&String(currentOfficer.role||"").toLowerCase()==="admin";
-}
 
 async function loadOfficers(){
  const tbody=document.getElementById("officersTable");
  const message=document.getElementById("listMessage");
+
  tbody.innerHTML='<tr><td colspan="6">جارٍ تحميل البيانات...</td></tr>';
  message.textContent="";
 
@@ -406,28 +466,172 @@ async function loadOfficers(){
  }
 }
 
+// أسماء العمليات المعروضة
+function auditActionInfo(action){
+ const types={
+  CREATE_OFFICER:{label:"إنشاء حساب",className:"audit-create"},
+  DISABLE_OFFICER:{label:"تعطيل حساب",className:"audit-disable"},
+  ACTIVATE_OFFICER:{label:"تفعيل حساب",className:"audit-activate"},
+  DELETE_OFFICER:{label:"حذف حساب",className:"audit-delete"}
+ };
+
+ return types[action]||{label:action||"عملية أخرى",className:"audit-unknown"};
+}
+
+// عرض التاريخ والوقت
+function formatAuditDate(value){
+ if(!value)return "-";
+
+ const date=new Date(value);
+ if(Number.isNaN(date.getTime()))return "-";
+
+ return new Intl.DateTimeFormat("ar-SA",{
+  dateStyle:"medium",
+  timeStyle:"short"
+ }).format(date);
+}
+
+// رسم السجل بعد تطبيق البحث والتصفية
+function renderAuditLogs(){
+ const tbody=document.getElementById("auditTable");
+ const search=document.getElementById("auditSearch").value.trim().toLowerCase();
+ const filter=document.getElementById("auditFilter").value;
+
+ const filtered=auditLogsCache.filter(log=>{
+  const matchesType=filter==="all"||log.action===filter;
+
+  const searchable=[
+   log.action,
+   log.details,
+   log.admin_username,
+   log.admin_name
+  ].join(" ").toLowerCase();
+
+  return matchesType&&searchable.includes(search);
+ });
+
+ tbody.innerHTML="";
+
+ if(filtered.length===0){
+  tbody.innerHTML='<tr><td colspan="5">لا توجد عمليات مطابقة للبحث.</td></tr>';
+  return;
+ }
+
+ filtered.forEach(log=>{
+  const tr=document.createElement("tr");
+
+  const idCell=document.createElement("td");
+  idCell.textContent=log.id??"-";
+  tr.appendChild(idCell);
+
+  const actionCell=document.createElement("td");
+  const info=auditActionInfo(log.action);
+  const badge=document.createElement("span");
+  badge.className="audit-badge "+info.className;
+  badge.textContent=info.label;
+  actionCell.appendChild(badge);
+  tr.appendChild(actionCell);
+
+  const adminCell=document.createElement("td");
+  adminCell.textContent=log.admin_name||log.admin_username||"مدير غير معروف";
+  tr.appendChild(adminCell);
+
+  const detailsCell=document.createElement("td");
+  detailsCell.className="audit-details";
+  detailsCell.textContent=log.details||"-";
+  tr.appendChild(detailsCell);
+
+  const dateCell=document.createElement("td");
+  dateCell.className="audit-date";
+  dateCell.textContent=formatAuditDate(log.created_at);
+  tr.appendChild(dateCell);
+
+  tbody.appendChild(tr);
+ });
+}
+
+// تحميل السجل من الخادم
+async function loadAuditLogs(){
+ const tbody=document.getElementById("auditTable");
+ const message=document.getElementById("auditMessage");
+ const button=document.getElementById("refreshAudit");
+
+ if(!isAdmin()){
+  message.style.color="#ff8585";
+  message.textContent="ليست لديك صلاحية عرض سجل العمليات.";
+  return;
+ }
+
+ tbody.innerHTML='<tr><td colspan="5">جارٍ تحميل سجل العمليات...</td></tr>';
+ message.textContent="";
+ button.disabled=true;
+
+ try{
+  const response=await fetch("/api/audit-logs",{
+   credentials:"same-origin"
+  });
+
+  const data=await response.json();
+
+  if(!response.ok){
+   throw new Error(data.error||"تعذر تحميل سجل العمليات");
+  }
+
+  auditLogsCache=data.logs||[];
+  renderAuditLogs();
+
+  message.style.color="#83d6a8";
+  message.textContent="تم تحميل "+auditLogsCache.length+" عملية بنجاح.";
+
+ }catch(error){
+  auditLogsCache=[];
+  tbody.innerHTML='<tr><td colspan="5">تعذر تحميل سجل العمليات.</td></tr>';
+  message.style.color="#ff8585";
+  message.textContent=error.message;
+ }finally{
+  button.disabled=false;
+ }
+}
+
 function openSection(key){
  const sectionView=document.getElementById("sectionView");
  const officersSection=document.getElementById("officersSection");
  const otherSection=document.getElementById("otherSection");
+ const auditSection=document.getElementById("auditSection");
 
  sectionView.classList.remove("hidden");
 
+ officersSection.classList.add("hidden");
+ otherSection.classList.add("hidden");
+ auditSection.classList.add("hidden");
+
  if(key==="officers"){
-  otherSection.classList.add("hidden");
   officersSection.classList.remove("hidden");
 
   const admin=isAdmin();
   document.getElementById("adminOnly").classList.toggle("hidden",!admin);
   document.getElementById("officerAccessMessage").classList.toggle("hidden",admin);
-  document.getElementById("officerAccessMessage").textContent=admin?"":"عرض قائمة الضباط متاح، لكن إنشاء الحسابات وإدارة الحسابات يتطلب صلاحية المدير.";
+
+  document.getElementById("officerAccessMessage").textContent=
+   admin?"":"عرض قائمة الضباط متاح، لكن إنشاء الحسابات وإدارة الحسابات يتطلب صلاحية المدير.";
 
   loadOfficers();
+
+ }else if(key==="audit"){
+  if(!isAdmin()){
+   alert("ليست لديك صلاحية عرض سجل العمليات.");
+   sectionView.classList.add("hidden");
+   return;
+  }
+
+  auditSection.classList.remove("hidden");
+  loadAuditLogs();
+
  }else{
-  officersSection.classList.add("hidden");
   otherSection.classList.remove("hidden");
 
   const info=sectionInfo[key];
+
   if(info){
    document.getElementById("sectionTitle").textContent=info[0];
    document.getElementById("sectionDescription").textContent=info[1];
@@ -446,6 +650,10 @@ document.getElementById("backButton").addEventListener("click",()=>{
 });
 
 document.getElementById("refreshOfficers").addEventListener("click",loadOfficers);
+document.getElementById("refreshAudit").addEventListener("click",loadAuditLogs);
+
+document.getElementById("auditSearch").addEventListener("input",renderAuditLogs);
+document.getElementById("auditFilter").addEventListener("change",renderAuditLogs);
 
 document.getElementById("officerForm").addEventListener("submit",async event=>{
  event.preventDefault();
