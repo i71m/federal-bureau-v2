@@ -143,7 +143,6 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 
   <section id="sectionView" class="panel hidden">
 
-   <!-- OFFICERS -->
    <div id="officersSection" class="hidden">
     <h2>إدارة الضباط</h2>
     <p>إنشاء حسابات الضباط ومراجعة الأفراد المسجلين في النظام.</p>
@@ -180,7 +179,6 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
     </div>
    </div>
 
-   <!-- CASES -->
    <div id="casesSection" class="hidden">
     <h2>مركز إدارة القضايا</h2>
     <p>إنشاء ملفات القضايا ومتابعة حالتها وأولويتها والضباط المكلّفين بها.</p>
@@ -246,7 +244,6 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
     </div>
    </div>
 
-   <!-- RELATIONSHIPS -->
    <div id="relationshipsSection" class="hidden">
     <h2>مركز تحليل شبكة العلاقات</h2>
     <p>منصة لعرض الروابط بين الأشخاص وتحليل العلاقات المباشرة وغير المباشرة.</p>
@@ -302,7 +299,6 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
     </div>
    </div>
 
-   <!-- OTHER SECTIONS -->
    <div id="otherSection" class="hidden">
     <h2 id="sectionTitle"></h2>
     <p id="sectionDescription"></p>
@@ -671,11 +667,21 @@ function resetCaseForm(){
  document.getElementById("caseFormTitle").textContent="إنشاء قضية جديدة";
  document.getElementById("saveCaseButton").textContent="إنشاء القضية";
  document.getElementById("cancelCaseEdit").classList.add("hidden");
+ document.getElementById("caseMessage").textContent="";
 }
+
+document.getElementById("cancelCaseEdit").addEventListener("click",resetCaseForm);
 
 function editCase(id){
  const c=casesData.find(item=>String(item.id)===String(id));
- if(!c)return;
+
+ const message=document.getElementById("caseMessage");
+
+ if(!c){
+  message.style.color="#ff8585";
+  message.textContent="تعذر العثور على بيانات القضية. حدّث القائمة وحاول مرة أخرى.";
+  return;
+ }
 
  document.getElementById("editingCaseId").value=c.id;
  document.getElementById("caseTitle").value=c.title||"";
@@ -687,11 +693,17 @@ function editCase(id){
  document.getElementById("caseFormTitle").textContent="تعديل القضية "+(c.case_number||"");
  document.getElementById("saveCaseButton").textContent="حفظ التعديلات";
  document.getElementById("cancelCaseEdit").classList.remove("hidden");
- document.getElementById("caseMessage").textContent="";
- document.getElementById("caseForm").scrollIntoView({behavior:"smooth"});
-}
 
-document.getElementById("cancelCaseEdit").addEventListener("click",resetCaseForm);
+ message.style.color="#83d6a8";
+ message.textContent="تم تحميل بيانات القضية. يمكنك تعديلها الآن.";
+
+ document.getElementById("caseForm").scrollIntoView({
+  behavior:"smooth",
+  block:"center"
+ });
+
+ document.getElementById("caseTitle").focus();
+}
 
 async function viewCase(id){
  try{
