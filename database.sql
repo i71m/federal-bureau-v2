@@ -98,6 +98,20 @@ CREATE TABLE IF NOT EXISTS wanted_history (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 9. صور المطلوبين
+CREATE TABLE IF NOT EXISTS wanted_images (
+    id BIGSERIAL PRIMARY KEY,
+    wanted_id BIGINT NOT NULL
+        REFERENCES wanted_persons(id) ON DELETE CASCADE,
+    image_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    image_data BYTEA NOT NULL,
+    file_size BIGINT NOT NULL,
+    uploaded_by BIGINT
+        REFERENCES officers(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- الفهارس
 CREATE INDEX IF NOT EXISTS cases_status_idx
 ON cases(status);
@@ -113,3 +127,6 @@ ON audit_logs(created_at);
 
 CREATE INDEX IF NOT EXISTS wanted_history_wanted_id_idx
 ON wanted_history(wanted_id);
+
+CREATE INDEX IF NOT EXISTS wanted_images_wanted_id_idx
+ON wanted_images(wanted_id);
