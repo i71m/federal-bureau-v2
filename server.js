@@ -2,6 +2,8 @@ require("dotenv").config();
 
 const express = require("express");
 const helmet = require("helmet");
+const session = require("express-session");
+const PgSession = require("connect-pg-simple")(session);
 const { Pool } = require("pg");
 const path = require("path");
 
@@ -18,56 +20,71 @@ app.use(helmet({
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-const pool = process.env.DATABASE_URL
-  ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_SSL === "true"
-        ? { rejectUnauthorized: false }
-        : undefined
-    })
-  : null;
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_SSL === "true"
+    ? { rejectUnauthorized: false }
+    : undefined
+});
 
-// الصفحة الرئيسية
+if (!process.env.DATABASE_URL || !process.env.SESSION_SECRET) {
+  throw new Error("DATABASE_URL and SESSION_SECRET are required");
+}
+
+// جلسات الضباط
+app.use(session({
+  name: "federal.sid",
+  store: new PgSession({
+    pool,
+    createTableIfMissing: true
+  }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 8 * 60 * 60 * 1000
+  }
+}));
+
+// تسجيل الدخول والخروج
+const createAuthRouter = require("./routes/auth");
+app.use("/api/auth", createAuthRouter(pool));
+
+// فحص الموقع وقاعدة البيانات
+app.get("/api/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+
+    res.json({
+      application: "FEDERAL BUREAU",
+      status: "running",
+      database: "connected"
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: "error",
+      database: "disconnected"
+    });
+  }
+});
+
+// ملفات الموقع
+app.use(express.static(path.join(__dirname, "public")));
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// فحص حالة الموقع وقاعدة البيانات
-app.get("/api/health", async (req, res) => {
-  let database = "not_configured";
-
-  if (pool) {
-    try {
-      await pool.query("SELECT 1");
-      database = "connected";
-    } catch (error) {
-      database = "disconnected";
-    }
-  }
-
-  res.json({
-    application: "FEDERAL BUREAU",
-    status: "running",
-    database
-  });
-});
-
-// تقديم ملفات الموقع
-app.use(express.static(path.join(__dirname, "public")));
-
-// معالجة الصفحات غير الموجودة
 app.use((req, res) => {
-  res.status(404).json({
-    error: "Page not found"
-  });
+  res.status(404).json({ error: "Page not found" });
 });
 
-// معالجة الأخطاء
 app.use((error, req, res, next) => {
   console.error("Server error:", error.message);
-  res.status(500).json({
-    error: "Internal server error"
-  });
+  res.status(500).json({ error: "Internal server error" });
 });
 
 const server = app.listen(PORT, () => {
@@ -76,7 +93,7 @@ const server = app.listen(PORT, () => {
 
 process.on("SIGTERM", async () => {
   server.close(async () => {
-    if (pool) await pool.end();
+    await pool.end();
     process.exit(0);
   });
 });
