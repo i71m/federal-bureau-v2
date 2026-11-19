@@ -124,7 +124,7 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
   <h2 class="section-title">لوحة القيادة</h2>
   <div class="grid">
    <div class="card"><div class="icon">♙</div><div class="stat-number" id="officerCount">--</div><div class="stat-label">إجمالي الضباط</div></div>
-   <div class="card"><div class="icon">⌕</div><div class="stat-number">--</div><div class="stat-label">المطلوبون</div></div>
+   <div class="card"><div class="icon">⌕</div><div class="stat-number" id="wantedCount">--</div><div class="stat-label">المطلوبون</div></div>
    <div class="card"><div class="icon">▤</div><div class="stat-number" id="caseCount">--</div><div class="stat-label">القضايا</div></div>
    <div class="card"><div class="icon">⌘</div><div class="stat-number" id="relationshipCount">--</div><div class="stat-label">العلاقات المسجلة</div></div>
   </div>
@@ -175,6 +175,73 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
      <table>
       <thead><tr><th>الاسم</th><th>اسم المستخدم</th><th>الرتبة</th><th>الدور</th><th>الحالة</th><th>الإدارة</th></tr></thead>
       <tbody id="officersTable"><tr><td colspan="6">لم يتم التحميل بعد.</td></tr></tbody>
+     </table>
+    </div>
+   </div>
+
+   <!-- WANTED PERSONS -->
+   <div id="wantedSection" class="hidden">
+    <h2>مركز إدارة المطلوبين</h2>
+    <p>تسجيل المطلوبين وإدارة ملفات البحث ومستويات الخطورة.</p>
+
+    <div class="grid">
+     <div class="network-stat">إجمالي المطلوبين<strong id="wantedTotal">0</strong></div>
+     <div class="network-stat">المطلوبون النشطون<strong id="wantedActive">0</strong></div>
+     <div class="network-stat">الموقوفون<strong id="wantedArrested">0</strong></div>
+    </div>
+
+    <div class="panel">
+     <h3 id="wantedFormTitle">تسجيل مطلوب جديد</h3>
+     <form id="wantedForm">
+      <input type="hidden" id="editingWantedId">
+
+      <div class="form-grid">
+       <input id="wantedFullName" placeholder="الاسم الكامل" maxlength="200" required>
+       <input id="wantedAlias" placeholder="الاسم المستعار" maxlength="200">
+       <select id="wantedThreat" required>
+        <option value="Low">خطورة منخفضة</option>
+        <option value="Medium" selected>خطورة متوسطة</option>
+        <option value="High">خطورة مرتفعة</option>
+        <option value="Critical">خطورة حرجة</option>
+       </select>
+       <select id="wantedStatus" required>
+        <option value="Active">مطلوب</option>
+        <option value="Arrested">مقبوض عليه</option>
+        <option value="Cleared">تمت تبرئته</option>
+       </select>
+      </div>
+
+      <textarea id="wantedCharges" placeholder="التهم المنسوبة إليه"></textarea>
+      <textarea id="wantedDescription" placeholder="الوصف والتفاصيل"></textarea>
+
+      <button class="primary full" id="saveWantedButton" type="submit">تسجيل المطلوب</button>
+      <button class="secondary full hidden" id="cancelWantedEdit" type="button">إلغاء التعديل</button>
+     </form>
+     <div id="wantedMessage" class="message"></div>
+    </div>
+
+    <div class="toolbar">
+     <input id="wantedSearch" placeholder="البحث بالاسم أو الاسم المستعار أو التهم...">
+     <button class="secondary" id="refreshWanted">تحديث القائمة</button>
+    </div>
+
+    <div id="wantedListMessage" class="message"></div>
+
+    <div class="table-wrap">
+     <table>
+      <thead>
+       <tr>
+        <th>الاسم</th>
+        <th>الاسم المستعار</th>
+        <th>مستوى الخطورة</th>
+        <th>الحالة</th>
+        <th>التهم</th>
+        <th>الإجراءات</th>
+       </tr>
+      </thead>
+      <tbody id="wantedTable">
+       <tr><td colspan="6">لم يتم تحميل البيانات بعد.</td></tr>
+      </tbody>
      </table>
     </div>
    </div>
@@ -325,9 +392,9 @@ let networkNodes=null;
 let networkEdges=null;
 let selectedPerson=null;
 let casesData=[];
+let wantedData=[];
 
 const sectionInfo={
- wanted:["المطلوبون","قسم المطلوبين يحتاج إلى مسارات API مستقلة قبل تفعيله."],
  reports:["التقارير الأمنية","هذا القسم يحتاج إلى إنشاء مسارات API وربطها بقاعدة البيانات."],
  evidence:["الأدلة والمرفقات","هذا القسم يحتاج إلى مسارات API خاصة بالأدلة والمرفقات."],
  permissions:["الصلاحيات","إدارة الصلاحيات المتقدمة ستكون ضمن تطوير لاحق."],
@@ -496,6 +563,230 @@ document.getElementById("officerForm").addEventListener("submit",async event=>{
   message.textContent=error.message;
  }finally{button.disabled=false;}
 });
+
+/* WANTED PERSONS */
+
+function wantedStatusArabic(status){
+ const labels={
+  Active:"مطلوب",
+  Arrested:"مقبوض عليه",
+  Cleared:"تمت تبرئته"
+ };
+ return labels[status]||status||"غير محددة";
+}
+
+function wantedThreatArabic(level){
+ const labels={
+  Low:"منخفضة",
+  Medium:"متوسطة",
+  High:"مرتفعة",
+  Critical:"حرجة"
+ };
+ return labels[level]||level||"غير محددة";
+}
+
+async function loadWanted(){
+ const tbody=document.getElementById("wantedTable");
+ const message=document.getElementById("wantedListMessage");
+
+ tbody.innerHTML='<tr><td colspan="6">جارٍ تحميل قائمة المطلوبين...</td></tr>';
+ message.textContent="";
+
+ try{
+  const response=await fetch("/api/wanted",{credentials:"same-origin"});
+  const data=await response.json();
+
+  if(!response.ok)throw new Error(data.error||"تعذر تحميل قائمة المطلوبين");
+  if(!data.success||!Array.isArray(data.wanted)){
+   throw new Error("استجابة قائمة المطلوبين غير متوقعة");
+  }
+
+  wantedData=data.wanted;
+
+  document.getElementById("wantedCount").textContent=wantedData.length;
+  document.getElementById("wantedTotal").textContent=wantedData.length;
+  document.getElementById("wantedActive").textContent=
+   wantedData.filter(person=>person.status==="Active").length;
+  document.getElementById("wantedArrested").textContent=
+   wantedData.filter(person=>person.status==="Arrested").length;
+
+  renderWantedTable();
+
+ }catch(error){
+  tbody.innerHTML='<tr><td colspan="6">تعذر تحميل قائمة المطلوبين.</td></tr>';
+  message.style.color="#ff8585";
+  message.textContent=error.message;
+ }
+}
+
+function renderWantedTable(){
+ const tbody=document.getElementById("wantedTable");
+ const search=document.getElementById("wantedSearch").value.trim().toLowerCase();
+
+ const filtered=wantedData.filter(person=>{
+  const searchable=[
+   person.full_name,
+   person.alias,
+   person.charges,
+   person.description
+  ].join(" ").toLowerCase();
+
+  return searchable.includes(search);
+ });
+
+ tbody.innerHTML="";
+
+ if(!filtered.length){
+  tbody.innerHTML='<tr><td colspan="6">لا توجد نتائج مطابقة للبحث.</td></tr>';
+  return;
+ }
+
+ filtered.forEach(person=>{
+  const tr=document.createElement("tr");
+
+  const nameCell=document.createElement("td");
+  nameCell.textContent=person.full_name||"—";
+  tr.appendChild(nameCell);
+
+  const aliasCell=document.createElement("td");
+  aliasCell.textContent=person.alias||"—";
+  tr.appendChild(aliasCell);
+
+  const threatCell=document.createElement("td");
+  threatCell.textContent=wantedThreatArabic(person.threat_level);
+  if(person.threat_level==="Critical"||person.threat_level==="High"){
+   threatCell.className="case-urgent";
+  }
+  tr.appendChild(threatCell);
+
+  const statusCell=document.createElement("td");
+  const statusTag=document.createElement("span");
+  statusTag.className="case-status "+(
+   person.status==="Active"?"case-urgent":
+   person.status==="Arrested"?"case-open":"case-closed"
+  );
+  statusTag.textContent=wantedStatusArabic(person.status);
+  statusCell.appendChild(statusTag);
+  tr.appendChild(statusCell);
+
+  const chargesCell=document.createElement("td");
+  chargesCell.textContent=person.charges||"—";
+  tr.appendChild(chargesCell);
+
+  const actions=document.createElement("td");
+  const editButton=document.createElement("button");
+  editButton.className="edit-button";
+  editButton.textContent="تعديل";
+  editButton.onclick=()=>editWanted(person.id);
+  actions.appendChild(editButton);
+
+  tr.appendChild(actions);
+  tbody.appendChild(tr);
+ });
+}
+
+function resetWantedForm(){
+ document.getElementById("wantedForm").reset();
+ document.getElementById("editingWantedId").value="";
+ document.getElementById("wantedFormTitle").textContent="تسجيل مطلوب جديد";
+ document.getElementById("saveWantedButton").textContent="تسجيل المطلوب";
+ document.getElementById("cancelWantedEdit").classList.add("hidden");
+ document.getElementById("wantedMessage").textContent="";
+ document.getElementById("wantedThreat").value="Medium";
+ document.getElementById("wantedStatus").value="Active";
+}
+
+function editWanted(id){
+ const person=wantedData.find(item=>String(item.id)===String(id));
+ const message=document.getElementById("wantedMessage");
+
+ if(!person){
+  message.style.color="#ff8585";
+  message.textContent="تعذر العثور على بيانات المطلوب. حدّث القائمة وحاول مرة أخرى.";
+  return;
+ }
+
+ document.getElementById("editingWantedId").value=person.id;
+ document.getElementById("wantedFullName").value=person.full_name||"";
+ document.getElementById("wantedAlias").value=person.alias||"";
+ document.getElementById("wantedDescription").value=person.description||"";
+ document.getElementById("wantedCharges").value=person.charges||"";
+ document.getElementById("wantedThreat").value=person.threat_level||"Medium";
+ document.getElementById("wantedStatus").value=person.status||"Active";
+
+ document.getElementById("wantedFormTitle").textContent="تعديل بيانات المطلوب";
+ document.getElementById("saveWantedButton").textContent="حفظ التعديلات";
+ document.getElementById("cancelWantedEdit").classList.remove("hidden");
+
+ message.style.color="#83d6a8";
+ message.textContent="تم تحميل بيانات المطلوب. يمكنك تعديلها الآن.";
+
+ document.getElementById("wantedForm").scrollIntoView({
+  behavior:"smooth",
+  block:"center"
+ });
+
+ document.getElementById("wantedFullName").focus();
+}
+
+document.getElementById("wantedForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+
+ const button=document.getElementById("saveWantedButton");
+ const message=document.getElementById("wantedMessage");
+ const editingId=document.getElementById("editingWantedId").value;
+
+ const payload={
+  full_name:document.getElementById("wantedFullName").value.trim(),
+  alias:document.getElementById("wantedAlias").value.trim(),
+  description:document.getElementById("wantedDescription").value.trim(),
+  charges:document.getElementById("wantedCharges").value.trim(),
+  threat_level:document.getElementById("wantedThreat").value,
+  status:document.getElementById("wantedStatus").value
+ };
+
+ if(!payload.full_name){
+  message.style.color="#ff8585";
+  message.textContent="يرجى إدخال الاسم الكامل.";
+  return;
+ }
+
+ button.disabled=true;
+ message.textContent="";
+
+ try{
+  const response=await fetch(
+   editingId?`/api/wanted/${encodeURIComponent(editingId)}`:"/api/wanted",
+   {
+    method:editingId?"PATCH":"POST",
+    headers:{"Content-Type":"application/json"},
+    credentials:"same-origin",
+    body:JSON.stringify(payload)
+   }
+  );
+
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر حفظ بيانات المطلوب");
+
+  message.style.color="#83d6a8";
+  message.textContent=editingId?
+   "تم تحديث بيانات المطلوب بنجاح.":
+   "تم تسجيل المطلوب بنجاح.";
+
+  resetWantedForm();
+  await loadWanted();
+
+ }catch(error){
+  message.style.color="#ff8585";
+  message.textContent=error.message;
+ }finally{
+  button.disabled=false;
+ }
+});
+
+document.getElementById("cancelWantedEdit").addEventListener("click",resetWantedForm);
+document.getElementById("wantedSearch").addEventListener("input",renderWantedTable);
+document.getElementById("refreshWanted").addEventListener("click",loadWanted);
 
 /* CASE MANAGEMENT */
 
@@ -1004,12 +1295,14 @@ function openSection(key){
  const officersSection=document.getElementById("officersSection");
  const relationshipsSection=document.getElementById("relationshipsSection");
  const casesSection=document.getElementById("casesSection");
+ const wantedSection=document.getElementById("wantedSection");
  const otherSection=document.getElementById("otherSection");
 
  sectionView.classList.remove("hidden");
  officersSection.classList.add("hidden");
  relationshipsSection.classList.add("hidden");
  casesSection.classList.add("hidden");
+ wantedSection.classList.add("hidden");
  otherSection.classList.add("hidden");
 
  if(key==="officers"){
@@ -1026,6 +1319,10 @@ function openSection(key){
   casesSection.classList.remove("hidden");
   resetCaseForm();
   loadCases();
+ }else if(key==="wanted"){
+  wantedSection.classList.remove("hidden");
+  resetWantedForm();
+  loadWanted();
  }else{
   otherSection.classList.remove("hidden");
   const info=sectionInfo[key];
