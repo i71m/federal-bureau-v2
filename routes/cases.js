@@ -17,11 +17,21 @@ module.exports = function (pool) {
   }
 
   // تسجيل العملية في سجل العمليات
-  async function addAuditLog(officerId, action, details) {
-    await pool.query(
+  async function addAuditLog(db, officerId, action, details) {
+    await db.query(
       `INSERT INTO audit_logs (officer_id, action, details)
        VALUES ($1, $2, $3)`,
       [officerId, action, details]
+    );
+  }
+
+  // تسجيل الحدث في السجل التاريخي للقضية
+  async function addCaseHistory(db, caseId, officerId, action, details) {
+    await db.query(
+      `INSERT INTO case_history
+        (case_id, officer_id, action, details)
+       VALUES ($1, $2, $3, $4)`,
+      [caseId, officerId, action, details]
     );
   }
 
@@ -81,6 +91,8 @@ module.exports = function (pool) {
 
   // إنشاء قضية جديدة
   router.post("/", requireLogin, async (req, res, next) => {
+    const db = await pool.connect();
+
     try {
       const {
         title,
@@ -90,25 +102,30 @@ module.exports = function (pool) {
         assigned_to
       } = req.body;
 
-      if (!title || !title.trim()) {
+      if (typeof title !== "string" || !title.trim()) {
         return res.status(400).json({
           error: "عنوان القضية مطلوب"
         });
       }
 
       const assignedId =
-        assigned_to === "" || assigned_to === undefined || assigned_to === null
+        assigned_to === "" ||
+        assigned_to === undefined ||
+        assigned_to === null
           ? null
           : Number(assigned_to);
 
-      if (assignedId !== null && (!Number.isInteger(assignedId) || assignedId <= 0)) {
+      if (
+        assignedId !== null &&
+        (!Number.isInteger(assignedId) || assignedId <= 0)
+      ) {
         return res.status(400).json({
           error: "رقم الضابط المكلّف غير صحيح"
         });
       }
 
       if (assignedId !== null) {
-        const officerCheck = await pool.query(
+        const officerCheck = await db.query(
           "SELECT id FROM officers WHERE id = $1 AND active = TRUE",
           [assignedId]
         );
@@ -120,9 +137,11 @@ module.exports = function (pool) {
         }
       }
 
+      await db.query("BEGIN");
+
       const caseNumber = generateCaseNumber();
 
-      const result = await pool.query(
+      const result = await db.query(
         `INSERT INTO cases
           (case_number, title, description, status, priority, assigned_to, created_by)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -140,11 +159,30 @@ module.exports = function (pool) {
 
       const newCase = result.rows[0];
 
+      // تسجيل إنشاء القضية في السجل التاريخي
+      await addCaseHistory(
+        db,
+        newCase.id,
+        req.session.officer.id,
+        "CREATE",
+        {
+          case_number: newCase.case_number,
+          title: newCase.title,
+          description: newCase.description,
+          status: newCase.status,
+          priority: newCase.priority,
+          assigned_to: newCase.assigned_to
+        }
+      );
+
       await addAuditLog(
+        db,
         req.session.officer.id,
         "CREATE_CASE",
         `تم إنشاء القضية ${newCase.case_number}: ${newCase.title}`
       );
+
+      await db.query("COMMIT");
 
       res.status(201).json({
         success: true,
@@ -153,12 +191,17 @@ module.exports = function (pool) {
       });
 
     } catch (error) {
+      await db.query("ROLLBACK").catch(() => {});
       next(error);
+    } finally {
+      db.release();
     }
   });
 
   // تعديل قضية
   router.patch("/:id", requireLogin, async (req, res, next) => {
+    const db = await pool.connect();
+
     try {
       const {
         title,
@@ -170,10 +213,11 @@ module.exports = function (pool) {
 
       const fields = [];
       const values = [];
+      const changes = {};
       let index = 1;
 
       if (title !== undefined) {
-        if (!title.trim()) {
+        if (typeof title !== "string" || !title.trim()) {
           return res.status(400).json({
             error: "عنوان القضية لا يمكن أن يكون فارغاً"
           });
@@ -198,20 +242,25 @@ module.exports = function (pool) {
         values.push(priority);
       }
 
+      let assignedId;
+
       if (assigned_to !== undefined) {
-        const assignedId =
+        assignedId =
           assigned_to === "" || assigned_to === null
             ? null
             : Number(assigned_to);
 
-        if (assignedId !== null && (!Number.isInteger(assignedId) || assignedId <= 0)) {
+        if (
+          assignedId !== null &&
+          (!Number.isInteger(assignedId) || assignedId <= 0)
+        ) {
           return res.status(400).json({
             error: "رقم الضابط المكلّف غير صحيح"
           });
         }
 
         if (assignedId !== null) {
-          const officerCheck = await pool.query(
+          const officerCheck = await db.query(
             "SELECT id FROM officers WHERE id = $1 AND active = TRUE",
             [assignedId]
           );
@@ -233,30 +282,101 @@ module.exports = function (pool) {
         });
       }
 
-      fields.push("updated_at = NOW()");
-      values.push(req.params.id);
+      await db.query("BEGIN");
 
-      const result = await pool.query(
-        `UPDATE cases
-         SET ${fields.join(", ")}
-         WHERE id = $${index}
-         RETURNING *`,
-        values
+      // جلب البيانات القديمة قبل التعديل
+      const oldResult = await db.query(
+        "SELECT * FROM cases WHERE id = $1 FOR UPDATE",
+        [req.params.id]
       );
 
-      if (result.rows.length === 0) {
+      if (oldResult.rows.length === 0) {
+        await db.query("ROLLBACK");
+
         return res.status(404).json({
           error: "القضية غير موجودة"
         });
       }
 
+      const oldCase = oldResult.rows[0];
+
+      values.push(req.params.id);
+
+      const result = await db.query(
+        `UPDATE cases
+         SET ${fields.join(", ")}, updated_at = NOW()
+         WHERE id = $${index}
+         RETURNING *`,
+        values
+      );
+
       const updatedCase = result.rows[0];
 
+      // مقارنة البيانات القديمة بالجديدة
+      const fieldsToCompare = [
+        "title",
+        "description",
+        "priority"
+      ];
+
+      fieldsToCompare.forEach(key => {
+        if (oldCase[key] !== updatedCase[key]) {
+          changes[key] = {
+            before: oldCase[key],
+            after: updatedCase[key]
+          };
+        }
+      });
+
+      // تسجيل التغييرات العامة
+      if (Object.keys(changes).length > 0) {
+        await addCaseHistory(
+          db,
+          updatedCase.id,
+          req.session.officer.id,
+          "UPDATE",
+          changes
+        );
+      }
+
+      // تسجيل تغيير الحالة
+      if (oldCase.status !== updatedCase.status) {
+        await addCaseHistory(
+          db,
+          updatedCase.id,
+          req.session.officer.id,
+          "STATUS_CHANGE",
+          {
+            before: oldCase.status,
+            after: updatedCase.status
+          }
+        );
+      }
+
+      // تسجيل تغيير الضابط المكلّف
+      if (String(oldCase.assigned_to ?? "") !== String(updatedCase.assigned_to ?? "")) {
+        await addCaseHistory(
+          db,
+          updatedCase.id,
+          req.session.officer.id,
+          "ASSIGNMENT_CHANGE",
+          {
+            assigned_to: {
+              before: oldCase.assigned_to,
+              after: updatedCase.assigned_to
+            }
+          }
+        );
+      }
+
       await addAuditLog(
+        db,
         req.session.officer.id,
         "UPDATE_CASE",
         `تم تعديل القضية ${updatedCase.case_number}`
       );
+
+      await db.query("COMMIT");
 
       res.json({
         success: true,
@@ -265,11 +385,15 @@ module.exports = function (pool) {
       });
 
     } catch (error) {
+      await db.query("ROLLBACK").catch(() => {});
       next(error);
+    } finally {
+      db.release();
     }
   });
 
   // حذف قضية
+  // متاح لجميع الضباط المسجلين
   router.delete("/:id", requireLogin, async (req, res, next) => {
     try {
       const result = await pool.query(
@@ -288,6 +412,7 @@ module.exports = function (pool) {
       const deletedCase = result.rows[0];
 
       await addAuditLog(
+        pool,
         req.session.officer.id,
         "DELETE_CASE",
         `تم حذف القضية ${deletedCase.case_number}: ${deletedCase.title}`
