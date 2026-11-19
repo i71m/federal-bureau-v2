@@ -4,172 +4,832 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FEDERAL BUREAU | Operations Portal</title>
+<title>FEDERAL BUREAU | Operations Center</title>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#080f1c;color:#e9edf5;font-family:Arial,sans-serif}
-header{background:#101c30;border-bottom:1px solid #b18a42;padding:22px 7%;display:flex;justify-content:space-between;align-items:center}
-.brand{font-size:23px;font-weight:bold;color:#d7b46a;letter-spacing:2px}
-header span{font-size:12px;color:#aab5c8}
-.hero{text-align:center;padding:55px 15px 30px}
-.hero h1{font-size:34px;color:#d7b46a;margin:0 0 12px}
+body{
+ margin:0;background:#080f1c;color:#e9edf5;
+ font-family:Arial,sans-serif
+}
+button{cursor:pointer;font-family:inherit}
+.hidden{display:none!important}
+
+header{
+ background:#101c30;border-bottom:1px solid #b18a42;
+ padding:20px 5%;display:flex;
+ justify-content:space-between;align-items:center;
+ gap:15px
+}
+.brand{font-size:23px;font-weight:bold;color:#d7b46a}
+.header-label{font-size:11px;color:#aab5c8}
+
+.hero{text-align:center;padding:45px 15px 25px}
+.hero h1{color:#d7b46a;margin:0 0 12px;font-size:32px}
 .hero p{color:#aab5c8}
-.status{display:inline-block;border:1px solid #315b49;color:#83d6a8;padding:7px 15px;border-radius:20px;font-size:12px;margin-top:12px}
-.container{max-width:1100px;margin:auto;padding:20px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:17px}
-.card{background:#111e32;border:1px solid #253750;border-radius:10px;padding:23px;min-height:130px}
-.card h3{color:#d7b46a;margin:0 0 14px}
+.status{
+ display:inline-block;border:1px solid #315b49;
+ color:#83d6a8;padding:8px 16px;
+ border-radius:20px;font-size:12px
+}
+
+.container{max-width:1200px;margin:auto;padding:25px}
+.section-title{
+ color:#d7b46a;font-size:21px;
+ margin:10px 0 20px
+}
+.grid{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+ gap:16px
+}
+.card{
+ background:#111e32;border:1px solid #253750;
+ border-radius:10px;padding:22px;
+ min-height:135px;transition:.2s
+}
+.card:hover{border-color:#b18a42;transform:translateY(-2px)}
+.card h3{color:#d7b46a;margin:10px 0}
 .card p{color:#aab5c8;font-size:13px;line-height:1.8}
-.icon{font-size:25px;margin-bottom:12px}
-.login{max-width:420px;margin:35px auto;background:#111e32;padding:25px;border:1px solid #34445b;border-radius:12px}
+.icon{font-size:25px;color:#d7b46a}
+
+.login{
+ max-width:420px;margin:35px auto;
+ background:#111e32;padding:25px;
+ border:1px solid #34445b;border-radius:12px
+}
 .login h2{text-align:center;color:#d7b46a}
-input{width:100%;padding:13px;margin:9px 0;background:#091323;border:1px solid #34445b;border-radius:6px;color:white}
-button{width:100%;padding:13px;margin-top:12px;background:#b18a42;color:#101725;border:0;border-radius:6px;font-weight:bold;cursor:pointer}
-button:disabled{opacity:.6;cursor:wait}
-.note{text-align:center;color:#8491a5;font-size:12px;margin-top:15px}
-.message{text-align:center;font-size:13px;line-height:1.8;margin-top:15px}
-footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
+input{
+ width:100%;padding:13px;margin:9px 0;
+ background:#091323;border:1px solid #34445b;
+ border-radius:6px;color:white
+}
+button.primary{
+ width:100%;padding:13px;margin-top:12px;
+ background:#b18a42;color:#101725;
+ border:0;border-radius:6px;font-weight:bold
+}
+button:disabled{opacity:.6}
+.message{text-align:center;font-size:13px;margin-top:15px;line-height:1.8}
+
+.dashboard-top{
+ display:flex;justify-content:space-between;
+ align-items:center;gap:15px;flex-wrap:wrap;
+ margin-bottom:25px
+}
+.officer{
+ background:#111e32;border:1px solid #34445b;
+ border-radius:10px;padding:15px 20px
+}
+.officer strong{color:#d7b46a}
+.logout{
+ background:#792f36;color:white;border:0;
+ padding:11px 18px;border-radius:6px
+}
+.stat-number{font-size:28px;color:#fff;font-weight:bold;margin:12px 0}
+.stat-label{color:#aab5c8;font-size:13px}
+
+.menu-card{cursor:pointer}
+.menu-card:focus{outline:2px solid #d7b46a}
+
+#sectionView{
+ background:#111e32;border:1px solid #34445b;
+ border-radius:10px;padding:25px;margin-top:25px
+}
+#sectionView h2{color:#d7b46a}
+#sectionView p{color:#aab5c8;line-height:1.9}
+
+footer{
+ text-align:center;padding:30px;
+ color:#69788e;font-size:12px
+}
+
+@media(max-width:600px){
+ header{padding:16px}
+ .brand{font-size:18px}
+ .container{padding:16px}
+ .hero h1{font-size:26px}
+}
 </style>
 </head>
+
 <body>
 
 <header>
-<div class="brand">FEDERAL BUREAU</div>
-<span>SECURE OPERATIONS PORTAL</span>
+ <div class="brand">FEDERAL BUREAU</div>
+ <div class="header-label">SECURE OPERATIONS PORTAL</div>
 </header>
 
-<section class="hero">
-<h1>FEDERAL BUREAU</h1>
-<p>نظام إدارة العمليات والمعلومات الأمنية</p>
-<div class="status">● SYSTEM INTERFACE ONLINE</div>
-</section>
+<!-- صفحة تسجيل الدخول -->
+<main id="loginPage">
+ <section class="hero">
+  <h1>FEDERAL BUREAU</h1>
+  <p>نظام إدارة العمليات والمعلومات الأمنية</p>
+  <div class="status">● SYSTEM INTERFACE ONLINE</div>
+ </section>
 
-<main class="container">
+ <div class="login">
+  <h2>تسجيل دخول الضباط</h2>
 
-<div class="grid">
-<div class="card">
-<div class="icon">◈</div>
-<h3>لوحة القيادة</h3>
-<p>مركز متابعة العمليات والإحصائيات الأمنية.</p>
-</div>
+  <form id="loginForm">
+   <input id="username" type="text"
+    placeholder="اسم المستخدم"
+    autocomplete="username" required>
 
-<div class="card">
-<div class="icon">⌕</div>
-<h3>المطلوبون</h3>
-<p>إدارة ملفات المطلوبين وبيانات البحث.</p>
-</div>
+   <input id="password" type="password"
+    placeholder="كلمة المرور"
+    autocomplete="current-password" required>
 
-<div class="card">
-<div class="icon">▤</div>
-<h3>ملفات القضايا</h3>
-<p>تنظيم القضايا والتحقيقات والمعلومات المرتبطة بها.</p>
-</div>
+   <button class="primary" id="loginButton" type="submit">
+    دخول النظام
+   </button>
+  </form>
 
-<div class="card">
-<div class="icon">▧</div>
-<h3>التقارير الأمنية</h3>
-<p>إنشاء التقارير ومراجعة سجلات العمليات.</p>
-</div>
+  <div id="loginMessage" class="message"></div>
+  <p style="text-align:center;color:#8491a5;font-size:12px">
+   AUTHORIZED PERSONNEL ONLY
+  </p>
+ </div>
+</main>
 
-<div class="card">
-<div class="icon">♙</div>
-<h3>الأفراد والرتب</h3>
-<p>إدارة بيانات الضباط والرتب والصلاحيات.</p>
-</div>
+<!-- لوحة القيادة -->
+<main id="dashboardPage" class="hidden">
 
-<div class="card">
-<div class="icon">⬡</div>
-<h3>الأدلة والمرفقات</h3>
-<p>تنظيم الأدلة والوثائق المرتبطة بالقضايا.</p>
-</div>
-</div>
+ <section class="hero">
+  <h1>OPERATIONS CENTER</h1>
+  <p>مركز إدارة العمليات والمعلومات الأمنية</p>
+  <div class="status">● SYSTEM ONLINE</div>
+ </section>
 
-<div class="login">
-<h2>تسجيل دخول الضباط</h2>
+ <div class="container">
 
-<form id="loginForm">
-<input
-id="username"
-type="text"
-placeholder="اسم المستخدم"
-autocomplete="username"
-required
->
+  <div class="dashboard-top">
+   <div class="officer">
+    <div style="color:#aab5c8;font-size:12px">الضابط المسجل</div>
+    <strong id="officerName">---</strong>
+    <div id="officerRank" style="color:#aab5c8;font-size:12px;margin-top:7px"></div>
+   </div>
 
-<input
-id="password"
-type="password"
-placeholder="كلمة المرور"
-autocomplete="current-password"
-required
->
+   <button class="logout" id="logoutButton">
+    تسجيل الخروج
+   </button>
+  </div>
 
-<button id="loginButton" type="submit">دخول النظام</button>
-</form>
+  <h2 class="section-title">لوحة القيادة</h2>
 
-<div id="message" class="message" role="status"></div>
-<div class="note">AUTHORIZED PERSONNEL ONLY</div>
-</div>
+  <div class="grid">
 
+   <div class="card">
+    <div class="icon">♙</div>
+    <div class="stat-number">--</div>
+    <div class="stat-label">إجمالي الضباط</div>
+   </div>
+
+   <div class="card">
+    <div class="icon">⌕</div>
+    <div class="stat-number">--</div>
+    <div class="stat-label">المطلوبون</div>
+   </div>
+
+   <div class="card">
+    <div class="icon">▤</div>
+    <div class="stat-number">--</div>
+    <div class="stat-label">القضايا المفتوحة</div>
+   </div>
+
+   <div class="card">
+    <div class="icon">▧</div>
+    <div class="stat-number">--</div>
+    <div class="stat-label">التقارير الأمنية</div>
+   </div>
+
+  </div>
+
+  <h2 class="section-title" style="margin-top:35px">
+   أقسام المكتب
+  </h2>
+
+  <div class="grid">
+
+   <div class="card menu-card" tabindex="0" data-section="officers">
+    <div class="icon">♙</div>
+    <h3>إدارة الضباط</h3>
+    <p>إدارة الأفراد والرتب وحسابات الدخول.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="wanted">
+    <div class="icon">⌕</div>
+    <h3>المطلوبون</h3>
+    <p>ملفات المطلوبين وبيانات البحث.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="cases">
+    <div class="icon">▤</div>
+    <h3>ملفات القضايا</h3>
+    <p>إدارة القضايا والتحقيقات.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="reports">
+    <div class="icon">▧</div>
+    <h3>التقارير الأمنية</h3>
+    <p>إنشاء التقارير ومراجعتها.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="evidence">
+    <div class="icon">⬡</div>
+    <h3>الأدلة والمرفقات</h3>
+    <p>حفظ وتنظيم الأدلة والوثائق.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="relationships">
+    <div class="icon">⌘</div>
+    <h3>شبكة العلاقات</h3>
+    <p>ربط الأشخاص والقضايا والمعلومات.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="permissions">
+    <div class="icon">⬢</div>
+    <h3>الصلاحيات</h3>
+    <p>إدارة صلاحيات الوصول للنظام.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="audit">
+    <div class="icon">▦</div>
+    <h3>سجل العمليات</h3>
+    <p>مراجعة أنشطة المستخدمين.</p>
+   </div>
+
+  </div>
+
+  <div id="sectionView" class="hidden">
+   <h2 id="sectionTitle"></h2>
+   <p id="sectionDescription"></p>
+   <button class="primary" id="backButton">العودة إلى لوحة القيادة</button>
+  </div>
+
+ </div>
 </main>
 
 <footer>
-FEDERAL BUREAU © 2026 — ALL RIGHTS RESERVED
+ FEDERAL BUREAU © 2026 — ALL RIGHTS RESERVED
 </footer>
 
 <script>
-const form = document.getElementById("loginForm");
-const button = document.getElementById("loginButton");
-const message = document.getElementById("message");
+const loginPage = document.getElementById("loginPage");
+const dashboardPage = document.getElementById("dashboardPage");
+const loginForm = document.getElementById("loginForm");
+const loginButton = document.getElementById("loginButton");
+const loginMessage = document.getElementById("loginMessage");
 
-form.addEventListener("submit", async function(event) {
-  event.preventDefault();
+function showLogin(){
+ dashboardPage.classList.add("hidden");
+ loginPage.classList.remove("hidden");
+}
 
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value;
+function showDashboard(officer){
+ loginPage.classList.add("hidden");
+ dashboardPage.classList.remove("hidden");
 
-  button.disabled = true;
-  button.textContent = "جارٍ التحقق...";
-  message.textContent = "";
+ document.getElementById("officerName").textContent =
+  officer.full_name || officer.username;
 
-  try {
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({ username, password })
-    });
+ document.getElementById("officerRank").textContent =
+  "الرتبة: " + (officer.rank || "غير محددة");
+}
 
-    const data = await response.json();
+async function checkSession(){
+ try{
+  const response = await fetch("/api/auth/me",{
+   credentials:"same-origin"
+  });
 
-    if (!response.ok) {
-      throw new Error(
-        response.status === 401
-          ? "اسم المستخدم أو كلمة المرور غير صحيحة."
-          : response.status === 403
-          ? "هذا الحساب غير مفعّل."
-          : data.error || "تعذر تسجيل الدخول."
-      );
-    }
-
-    message.style.color = "#83d6a8";
-    message.textContent =
-      "تم تسجيل الدخول بنجاح. مرحباً " +
-      (data.officer.full_name || data.officer.username);
-
-    form.reset();
-
-  } catch (error) {
-    message.style.color = "#ff8585";
-    message.textContent =
-      error.message || "تعذر الاتصال بالخادم.";
-  } finally {
-    button.disabled = false;
-    button.textContent = "دخول النظام";
+  if(!response.ok){
+   showLogin();
+   return;
   }
+
+  const data = await response.json();
+
+  if(data.authenticated && data.officer){
+   showDashboard(data.officer);
+  }else{
+   showLogin();
+  }
+ }catch(error){
+  showLogin();
+ }
+}
+
+loginForm.addEventListener("submit",async function(event){
+ event.preventDefault();
+
+ loginButton.disabled = true;
+ loginButton.textContent = "جارٍ التحقق...";
+ loginMessage.textContent = "";
+
+ try{
+  const response = await fetch("/api/auth/login",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   credentials:"same-origin",
+   body:JSON.stringify({
+    username:document.getElementById("username").value.trim(),
+    password:document.getElementById("password").value
+   })
+  });
+
+  const data = await response.json();
+
+  if(!response.ok){
+   throw new Error(data.error || "تعذر تسجيل الدخول");
+  }
+
+  if(!data.officer){
+   throw new Error("لم يتم استلام بيانات الضابط");
+  }
+
+  loginForm.reset();
+  showDashboard(data.officer);
+
+ }catch(error){
+  loginMessage.style.color="#ff8585";
+  loginMessage.textContent=error.message;
+ }finally{
+  loginButton.disabled=false;
+  loginButton.textContent="دخول النظام";
+ }
 });
+
+document.getElementById("logoutButton").addEventListener("click",async function(){
+ try{
+  const response = await fetch("/api/auth/logout",{
+   method:"POST",
+   credentials:"same-origin"
+  });
+
+  if(!response.ok){
+   throw new Error("تعذر تسجيل الخروج");
+  }
+
+  showLogin();
+ }catch(error){
+  alert(error.message);
+ }
+});
+
+const sectionInfo = {
+ officers:["إدارة الضباط","إدارة حسابات الأفراد والرتب وحالة الحسابات. هذه الصفحة ستُربط بقاعدة البيانات."],
+ wanted:["المطلوبون","إضافة ملفات المطلوبين ومراجعة بياناتهم وحالة كل ملف."],
+ cases:["ملفات القضايا","إنشاء القضايا وربطها بالأشخاص والتقارير والأدلة."],
+ reports:["التقارير الأمنية","إنشاء التقارير الأمنية ومراجعتها وحفظها."],
+ evidence:["الأدلة والمرفقات","تنظيم الأدلة والوثائق وربطها بملفات القضايا."],
+ relationships:["شبكة العلاقات","عرض الروابط بين الأشخاص والقضايا والمعلومات."],
+ permissions:["الصلاحيات","تحديد ما يمكن لكل رتبة أو حساب الوصول إليه."],
+ audit:["سجل العمليات","مراجعة سجل عمليات المستخدمين داخل النظام."]
+};
+
+function openSection(key){
+ const info=sectionInfo[key];
+ if(!info)return;
+
+ document.getElementById("sectionTitle").textContent=info[0];
+ document.getElementById("sectionDescription").textContent=info[1];
+ document.getElementById("sectionView").classList.remove("hidden");
+ document.getElementById("sectionView").scrollIntoView({behavior:"smooth"});
+}
+
+document.querySelectorAll(".menu-card").forEach(card=>{
+ card.addEventListener("click",()=>openSection(card.dataset.section));
+ card.addEventListener("keydown",event=>{
+  if(event.key==="Enter"||event.key===" "){
+   event.preventDefault();
+   openSection(card.dataset.section);
+  }
+ });
+});
+
+document.getElementById("backButton").addEventListener("click",()=>{
+ document.getElementById("sectionView").classList.add("hidden");
+});
+
+checkSession();
+</script>
+
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FEDERAL BUREAU | Operations Center</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#080f1c;color:#e9edf5;
+ font-family:Arial,sans-serif
+}
+button{cursor:pointer;font-family:inherit}
+.hidden{display:none!important}
+
+header{
+ background:#101c30;border-bottom:1px solid #b18a42;
+ padding:20px 5%;display:flex;
+ justify-content:space-between;align-items:center;
+ gap:15px
+}
+.brand{font-size:23px;font-weight:bold;color:#d7b46a}
+.header-label{font-size:11px;color:#aab5c8}
+
+.hero{text-align:center;padding:45px 15px 25px}
+.hero h1{color:#d7b46a;margin:0 0 12px;font-size:32px}
+.hero p{color:#aab5c8}
+.status{
+ display:inline-block;border:1px solid #315b49;
+ color:#83d6a8;padding:8px 16px;
+ border-radius:20px;font-size:12px
+}
+
+.container{max-width:1200px;margin:auto;padding:25px}
+.section-title{
+ color:#d7b46a;font-size:21px;
+ margin:10px 0 20px
+}
+.grid{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+ gap:16px
+}
+.card{
+ background:#111e32;border:1px solid #253750;
+ border-radius:10px;padding:22px;
+ min-height:135px;transition:.2s
+}
+.card:hover{border-color:#b18a42;transform:translateY(-2px)}
+.card h3{color:#d7b46a;margin:10px 0}
+.card p{color:#aab5c8;font-size:13px;line-height:1.8}
+.icon{font-size:25px;color:#d7b46a}
+
+.login{
+ max-width:420px;margin:35px auto;
+ background:#111e32;padding:25px;
+ border:1px solid #34445b;border-radius:12px
+}
+.login h2{text-align:center;color:#d7b46a}
+input{
+ width:100%;padding:13px;margin:9px 0;
+ background:#091323;border:1px solid #34445b;
+ border-radius:6px;color:white
+}
+button.primary{
+ width:100%;padding:13px;margin-top:12px;
+ background:#b18a42;color:#101725;
+ border:0;border-radius:6px;font-weight:bold
+}
+button:disabled{opacity:.6}
+.message{text-align:center;font-size:13px;margin-top:15px;line-height:1.8}
+
+.dashboard-top{
+ display:flex;justify-content:space-between;
+ align-items:center;gap:15px;flex-wrap:wrap;
+ margin-bottom:25px
+}
+.officer{
+ background:#111e32;border:1px solid #34445b;
+ border-radius:10px;padding:15px 20px
+}
+.officer strong{color:#d7b46a}
+.logout{
+ background:#792f36;color:white;border:0;
+ padding:11px 18px;border-radius:6px
+}
+.stat-number{font-size:28px;color:#fff;font-weight:bold;margin:12px 0}
+.stat-label{color:#aab5c8;font-size:13px}
+
+.menu-card{cursor:pointer}
+.menu-card:focus{outline:2px solid #d7b46a}
+
+#sectionView{
+ background:#111e32;border:1px solid #34445b;
+ border-radius:10px;padding:25px;margin-top:25px
+}
+#sectionView h2{color:#d7b46a}
+#sectionView p{color:#aab5c8;line-height:1.9}
+
+footer{
+ text-align:center;padding:30px;
+ color:#69788e;font-size:12px
+}
+
+@media(max-width:600px){
+ header{padding:16px}
+ .brand{font-size:18px}
+ .container{padding:16px}
+ .hero h1{font-size:26px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+ <div class="brand">FEDERAL BUREAU</div>
+ <div class="header-label">SECURE OPERATIONS PORTAL</div>
+</header>
+
+<!-- صفحة تسجيل الدخول -->
+<main id="loginPage">
+ <section class="hero">
+  <h1>FEDERAL BUREAU</h1>
+  <p>نظام إدارة العمليات والمعلومات الأمنية</p>
+  <div class="status">● SYSTEM INTERFACE ONLINE</div>
+ </section>
+
+ <div class="login">
+  <h2>تسجيل دخول الضباط</h2>
+
+  <form id="loginForm">
+   <input id="username" type="text"
+    placeholder="اسم المستخدم"
+    autocomplete="username" required>
+
+   <input id="password" type="password"
+    placeholder="كلمة المرور"
+    autocomplete="current-password" required>
+
+   <button class="primary" id="loginButton" type="submit">
+    دخول النظام
+   </button>
+  </form>
+
+  <div id="loginMessage" class="message"></div>
+  <p style="text-align:center;color:#8491a5;font-size:12px">
+   AUTHORIZED PERSONNEL ONLY
+  </p>
+ </div>
+</main>
+
+<!-- لوحة القيادة -->
+<main id="dashboardPage" class="hidden">
+
+ <section class="hero">
+  <h1>OPERATIONS CENTER</h1>
+  <p>مركز إدارة العمليات والمعلومات الأمنية</p>
+  <div class="status">● SYSTEM ONLINE</div>
+ </section>
+
+ <div class="container">
+
+  <div class="dashboard-top">
+   <div class="officer">
+    <div style="color:#aab5c8;font-size:12px">الضابط المسجل</div>
+    <strong id="officerName">---</strong>
+    <div id="officerRank" style="color:#aab5c8;font-size:12px;margin-top:7px"></div>
+   </div>
+
+   <button class="logout" id="logoutButton">
+    تسجيل الخروج
+   </button>
+  </div>
+
+  <h2 class="section-title">لوحة القيادة</h2>
+
+  <div class="grid">
+
+   <div class="card">
+    <div class="icon">♙</div>
+    <div class="stat-number">--</div>
+    <div class="stat-label">إجمالي الضباط</div>
+   </div>
+
+   <div class="card">
+    <div class="icon">⌕</div>
+    <div class="stat-number">--</div>
+    <div class="stat-label">المطلوبون</div>
+   </div>
+
+   <div class="card">
+    <div class="icon">▤</div>
+    <div class="stat-number">--</div>
+    <div class="stat-label">القضايا المفتوحة</div>
+   </div>
+
+   <div class="card">
+    <div class="icon">▧</div>
+    <div class="stat-number">--</div>
+    <div class="stat-label">التقارير الأمنية</div>
+   </div>
+
+  </div>
+
+  <h2 class="section-title" style="margin-top:35px">
+   أقسام المكتب
+  </h2>
+
+  <div class="grid">
+
+   <div class="card menu-card" tabindex="0" data-section="officers">
+    <div class="icon">♙</div>
+    <h3>إدارة الضباط</h3>
+    <p>إدارة الأفراد والرتب وحسابات الدخول.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="wanted">
+    <div class="icon">⌕</div>
+    <h3>المطلوبون</h3>
+    <p>ملفات المطلوبين وبيانات البحث.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="cases">
+    <div class="icon">▤</div>
+    <h3>ملفات القضايا</h3>
+    <p>إدارة القضايا والتحقيقات.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="reports">
+    <div class="icon">▧</div>
+    <h3>التقارير الأمنية</h3>
+    <p>إنشاء التقارير ومراجعتها.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="evidence">
+    <div class="icon">⬡</div>
+    <h3>الأدلة والمرفقات</h3>
+    <p>حفظ وتنظيم الأدلة والوثائق.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="relationships">
+    <div class="icon">⌘</div>
+    <h3>شبكة العلاقات</h3>
+    <p>ربط الأشخاص والقضايا والمعلومات.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="permissions">
+    <div class="icon">⬢</div>
+    <h3>الصلاحيات</h3>
+    <p>إدارة صلاحيات الوصول للنظام.</p>
+   </div>
+
+   <div class="card menu-card" tabindex="0" data-section="audit">
+    <div class="icon">▦</div>
+    <h3>سجل العمليات</h3>
+    <p>مراجعة أنشطة المستخدمين.</p>
+   </div>
+
+  </div>
+
+  <div id="sectionView" class="hidden">
+   <h2 id="sectionTitle"></h2>
+   <p id="sectionDescription"></p>
+   <button class="primary" id="backButton">العودة إلى لوحة القيادة</button>
+  </div>
+
+ </div>
+</main>
+
+<footer>
+ FEDERAL BUREAU © 2026 — ALL RIGHTS RESERVED
+</footer>
+
+<script>
+const loginPage = document.getElementById("loginPage");
+const dashboardPage = document.getElementById("dashboardPage");
+const loginForm = document.getElementById("loginForm");
+const loginButton = document.getElementById("loginButton");
+const loginMessage = document.getElementById("loginMessage");
+
+function showLogin(){
+ dashboardPage.classList.add("hidden");
+ loginPage.classList.remove("hidden");
+}
+
+function showDashboard(officer){
+ loginPage.classList.add("hidden");
+ dashboardPage.classList.remove("hidden");
+
+ document.getElementById("officerName").textContent =
+  officer.full_name || officer.username;
+
+ document.getElementById("officerRank").textContent =
+  "الرتبة: " + (officer.rank || "غير محددة");
+}
+
+async function checkSession(){
+ try{
+  const response = await fetch("/api/auth/me",{
+   credentials:"same-origin"
+  });
+
+  if(!response.ok){
+   showLogin();
+   return;
+  }
+
+  const data = await response.json();
+
+  if(data.authenticated && data.officer){
+   showDashboard(data.officer);
+  }else{
+   showLogin();
+  }
+ }catch(error){
+  showLogin();
+ }
+}
+
+loginForm.addEventListener("submit",async function(event){
+ event.preventDefault();
+
+ loginButton.disabled = true;
+ loginButton.textContent = "جارٍ التحقق...";
+ loginMessage.textContent = "";
+
+ try{
+  const response = await fetch("/api/auth/login",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   credentials:"same-origin",
+   body:JSON.stringify({
+    username:document.getElementById("username").value.trim(),
+    password:document.getElementById("password").value
+   })
+  });
+
+  const data = await response.json();
+
+  if(!response.ok){
+   throw new Error(data.error || "تعذر تسجيل الدخول");
+  }
+
+  if(!data.officer){
+   throw new Error("لم يتم استلام بيانات الضابط");
+  }
+
+  loginForm.reset();
+  showDashboard(data.officer);
+
+ }catch(error){
+  loginMessage.style.color="#ff8585";
+  loginMessage.textContent=error.message;
+ }finally{
+  loginButton.disabled=false;
+  loginButton.textContent="دخول النظام";
+ }
+});
+
+document.getElementById("logoutButton").addEventListener("click",async function(){
+ try{
+  const response = await fetch("/api/auth/logout",{
+   method:"POST",
+   credentials:"same-origin"
+  });
+
+  if(!response.ok){
+   throw new Error("تعذر تسجيل الخروج");
+  }
+
+  showLogin();
+ }catch(error){
+  alert(error.message);
+ }
+});
+
+const sectionInfo = {
+ officers:["إدارة الضباط","إدارة حسابات الأفراد والرتب وحالة الحسابات. هذه الصفحة ستُربط بقاعدة البيانات."],
+ wanted:["المطلوبون","إضافة ملفات المطلوبين ومراجعة بياناتهم وحالة كل ملف."],
+ cases:["ملفات القضايا","إنشاء القضايا وربطها بالأشخاص والتقارير والأدلة."],
+ reports:["التقارير الأمنية","إنشاء التقارير الأمنية ومراجعتها وحفظها."],
+ evidence:["الأدلة والمرفقات","تنظيم الأدلة والوثائق وربطها بملفات القضايا."],
+ relationships:["شبكة العلاقات","عرض الروابط بين الأشخاص والقضايا والمعلومات."],
+ permissions:["الصلاحيات","تحديد ما يمكن لكل رتبة أو حساب الوصول إليه."],
+ audit:["سجل العمليات","مراجعة سجل عمليات المستخدمين داخل النظام."]
+};
+
+function openSection(key){
+ const info=sectionInfo[key];
+ if(!info)return;
+
+ document.getElementById("sectionTitle").textContent=info[0];
+ document.getElementById("sectionDescription").textContent=info[1];
+ document.getElementById("sectionView").classList.remove("hidden");
+ document.getElementById("sectionView").scrollIntoView({behavior:"smooth"});
+}
+
+document.querySelectorAll(".menu-card").forEach(card=>{
+ card.addEventListener("click",()=>openSection(card.dataset.section));
+ card.addEventListener("keydown",event=>{
+  if(event.key==="Enter"||event.key===" "){
+   event.preventDefault();
+   openSection(card.dataset.section);
+  }
+ });
+});
+
+document.getElementById("backButton").addEventListener("click",()=>{
+ document.getElementById("sectionView").classList.add("hidden");
+});
+
+checkSession();
 </script>
 
 </body>
