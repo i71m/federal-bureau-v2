@@ -87,6 +87,10 @@ app.use("/api/cases", createCasesRouter(pool));
 const createWantedRouter = require("./routes/wanted");
 app.use("/api/wanted", createWantedRouter(pool));
 
+// سجل تاريخ المطلوبين
+const createWantedHistoryRouter = require("./routes/wanted-history");
+app.use("/api/wanted-history", createWantedHistoryRouter(pool));
+
 // سجل العمليات - للمدير فقط
 app.get("/api/audit-logs", requireAdmin, async (req, res, next) => {
   try {
