@@ -303,6 +303,111 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
     </div>
    </div>
 
+<div id="casesSection" class="hidden">
+  <h2>CASE MANAGEMENT</h2>
+  <p>مركز إدارة القضايا والتحقيقات الأمنية</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="icon">▤</div>
+      <div class="stat-number" id="totalCases">0</div>
+      <div class="stat-label">إجمالي القضايا</div>
+    </div>
+    <div class="card">
+      <div class="icon">◷</div>
+      <div class="stat-number" id="openCases">0</div>
+      <div class="stat-label">القضايا المفتوحة</div>
+    </div>
+    <div class="card">
+      <div class="icon">✓</div>
+      <div class="stat-number" id="closedCases">0</div>
+      <div class="stat-label">القضايا المغلقة</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3 id="caseFormTitle">إنشاء قضية جديدة</h3>
+
+    <form id="caseForm">
+      <input type="hidden" id="caseId">
+
+      <div class="form-grid">
+        <input id="caseTitle" maxlength="200"
+          placeholder="عنوان القضية" required>
+
+        <select id="caseStatus">
+          <option value="Open">مفتوحة</option>
+          <option value="Under Investigation">قيد التحقيق</option>
+          <option value="Closed">مغلقة</option>
+          <option value="Suspended">معلقة</option>
+        </select>
+
+        <select id="casePriority">
+          <option value="Normal">عادية</option>
+          <option value="Low">منخفضة</option>
+          <option value="High">عالية</option>
+          <option value="Critical">حرجة</option>
+        </select>
+
+        <select id="caseAssignedTo">
+          <option value="">بدون ضابط مكلّف</option>
+        </select>
+      </div>
+
+      <textarea id="caseDescription"
+        placeholder="تفاصيل القضية والتحقيقات..."
+        maxlength="10000"
+        rows="5"
+        style="width:100%;padding:13px;margin:9px 0;background:#091323;border:1px solid #34445b;border-radius:6px;color:white;font-family:inherit;resize:vertical"></textarea>
+
+      <button class="primary full" id="saveCaseButton" type="submit">
+        إنشاء القضية
+      </button>
+
+      <button class="danger full hidden" id="cancelCaseEdit"
+        type="button">
+        إلغاء التعديل
+      </button>
+    </form>
+
+    <div id="caseMessage" class="message"></div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h3>سجل القضايا</h3>
+      <button class="primary" id="refreshCases" type="button">
+        تحديث القضايا
+      </button>
+    </div>
+
+    <input id="caseSearch" type="search"
+      placeholder="ابحث برقم القضية أو عنوانها أو اسم الضابط...">
+
+    <div id="caseListMessage" class="message"></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>رقم القضية</th>
+            <th>العنوان</th>
+            <th>الحالة</th>
+            <th>الأولوية</th>
+            <th>الضابط المكلّف</th>
+            <th>منشئ القضية</th>
+            <th>تاريخ الإنشاء</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="casesTable">
+          <tr><td colspan="8">لا توجد قضايا محمّلة.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
    <div id="otherSection" class="hidden">
     <h2 id="sectionTitle"></h2>
     <p id="sectionDescription"></p>
