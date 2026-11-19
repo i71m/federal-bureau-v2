@@ -1,48 +1,55 @@
 
-const express = require("express");
-const router = express.Router();
-const pool = require("../db");
+module.exports = function (pool) {
+  const express = require("express");
+  const router = express.Router();
 
-function requireLogin(req, res, next) {
-  if (!req.session || !req.session.officer) {
-    return res.status(401).json({
-      success: false,
-      message: "يجب تسجيل الدخول أولاً"
-    });
+  function requireLogin(req, res, next) {
+    if (!req.session.officer) {
+      return res.status(401).json({
+        error: "يجب تسجيل الدخول أولاً"
+      });
+    }
+    next();
   }
-  next();
-}
 
-router.use(requireLogin);
-
-// عرض جميع القضايا
-router.get("/", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT
-        c.*,
-        o.full_name AS created_by_name
-      FROM cases c
-      LEFT JOIN officers o ON o.id = c.created_by
-      ORDER BY c.created_at DESC
-    `);
-
-    res.json({
-      success: true,
-      cases: result.rows
-    });
-  } catch (error) {
-    console.error("Cases error:", error);
-    res.status(500).json({
-      success: false,
-      message: "تعذر تحميل القضايا"
-    });
+  function requireText(value, maxLength) {
+    return typeof value === "string" &&
+      value.trim().length > 0 &&
+      value.trim().length <= maxLength;
   }
-});
 
-// إنشاء قضية جديدة
-router.post("/", async (req, res) => {
-  try {
+  const statuses = ["مفتوحة", "قيد التحقيق", "مغلقة"];
+  const secrecyLevels = ["عادي", "سري", "سري للغاية"];
+
+  // عرض القضايا
+  router.get("/", requireLogin, async (req, res, next) => {
+    try {
+      const search = String(req.query.search || "").trim();
+
+      const result = await pool.query(
+        `SELECT c.*, o.username AS created_by_username,
+                o.full_name AS created_by_name
+         FROM cases c
+         LEFT JOIN officers o ON o.id = c.created_by
+         WHERE c.title ILIKE $1
+            OR COALESCE(c.description, '') ILIKE $1
+            OR COALESCE(c.category, '') ILIKE $1
+         ORDER BY c.created_at DESC
+         LIMIT 200`,
+        [`%${search}%`]
+      );
+
+      res.json({
+        success: true,
+        cases: result.rows
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // إنشاء قضية
+  router.post("/", requireLogin, async (req, res, next) => {
     const {
       title,
       description,
@@ -51,66 +58,91 @@ router.post("/", async (req, res) => {
       secrecy_level
     } = req.body;
 
-    if (!title || !title.trim()) {
+    if (!requireText(title, 200)) {
       return res.status(400).json({
-        success: false,
-        message: "عنوان القضية مطلوب"
+        error: "عنوان القضية مطلوب، وبحد أقصى 200 حرف"
       });
     }
 
-    const allowedStatuses = [
-      "مفتوحة",
-      "قيد التحقيق",
-      "مغلقة"
-    ];
+    if (description && (
+      typeof description !== "string" ||
+      description.length > 10000
+    )) {
+      return res.status(400).json({
+        error: "وصف القضية غير صالح"
+      });
+    }
 
-    const allowedSecrecy = [
-      "عادي",
-      "سري",
-      "سري للغاية"
-    ];
+    if (category && (
+      typeof category !== "string" ||
+      category.length > 100
+    )) {
+      return res.status(400).json({
+        error: "تصنيف القضية غير صالح"
+      });
+    }
 
-    const caseStatus = allowedStatuses.includes(status)
-      ? status
-      : "مفتوحة";
+    if (status && !statuses.includes(status)) {
+      return res.status(400).json({
+        error: "حالة القضية غير صالحة"
+      });
+    }
 
-    const secrecy = allowedSecrecy.includes(secrecy_level)
-      ? secrecy_level
-      : "عادي";
+    if (secrecy_level && !secrecyLevels.includes(secrecy_level)) {
+      return res.status(400).json({
+        error: "درجة السرية غير صالحة"
+      });
+    }
 
-    const result = await pool.query(
-      `INSERT INTO cases
-       (title, description, category, status, secrecy_level, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [
-        title.trim(),
-        description || "",
-        category || "عام",
-        caseStatus,
-        secrecy,
-        req.session.officer.id
-      ]
-    );
+    const client = await pool.connect();
 
-    res.status(201).json({
-      success: true,
-      message: "تم إنشاء القضية بنجاح",
-      case: result.rows[0]
-    });
-  } catch (error) {
-    console.error("Create case error:", error);
-    res.status(500).json({
-      success: false,
-      message: "تعذر إنشاء القضية"
-    });
-  }
-});
+    try {
+      await client.query("BEGIN");
 
-// تحديث بيانات القضية
-router.patch("/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
+      const result = await client.query(
+        `INSERT INTO cases
+          (title, description, category, status, secrecy_level, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [
+          title.trim(),
+          description ? description.trim() : null,
+          category ? category.trim() : "عام",
+          status || "مفتوحة",
+          secrecy_level || "عادي",
+          req.session.officer.id
+        ]
+      );
+
+      const newCase = result.rows[0];
+
+      await client.query(
+        `INSERT INTO audit_logs (officer_id, action, details)
+         VALUES ($1, $2, $3)`,
+        [
+          req.session.officer.id,
+          "CREATE_CASE",
+          `إنشاء القضية: ${newCase.title}`
+        ]
+      );
+
+      await client.query("COMMIT");
+
+      res.status(201).json({
+        success: true,
+        message: "تم إنشاء القضية بنجاح",
+        case: newCase
+      });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      next(error);
+    } finally {
+      client.release();
+    }
+  });
+
+  // تحديث قضية
+  router.patch("/:id", requireLogin, async (req, res, next) => {
     const {
       title,
       description,
@@ -119,75 +151,156 @@ router.patch("/:id", async (req, res) => {
       secrecy_level
     } = req.body;
 
-    const result = await pool.query(
-      `UPDATE cases
-       SET
-         title = COALESCE($1, title),
-         description = COALESCE($2, description),
-         category = COALESCE($3, category),
-         status = COALESCE($4, status),
-         secrecy_level = COALESCE($5, secrecy_level)
-       WHERE id = $6
-       RETURNING *`,
-      [
-        title,
-        description,
-        category,
-        status,
-        secrecy_level,
-        id
-      ]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "القضية غير موجودة"
+    if (title !== undefined && !requireText(title, 200)) {
+      return res.status(400).json({
+        error: "عنوان القضية غير صالح"
       });
     }
 
-    res.json({
-      success: true,
-      message: "تم تحديث القضية",
-      case: result.rows[0]
-    });
-  } catch (error) {
-    console.error("Update case error:", error);
-    res.status(500).json({
-      success: false,
-      message: "تعذر تحديث القضية"
-    });
-  }
-});
-
-// حذف قضية
-router.delete("/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const result = await pool.query(
-      "DELETE FROM cases WHERE id = $1 RETURNING id",
-      [id]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "القضية غير موجودة"
+    if (description !== undefined &&
+        (typeof description !== "string" || description.length > 10000)) {
+      return res.status(400).json({
+        error: "وصف القضية غير صالح"
       });
     }
 
-    res.json({
-      success: true,
-      message: "تم حذف القضية"
-    });
-  } catch (error) {
-    console.error("Delete case error:", error);
-    res.status(500).json({
-      success: false,
-      message: "تعذر حذف القضية"
-    });
-  }
-});
+    if (category !== undefined &&
+        (typeof category !== "string" || category.length > 100)) {
+      return res.status(400).json({
+        error: "تصنيف القضية غير صالح"
+      });
+    }
 
-module.exports = router;
+    if (status !== undefined && !statuses.includes(status)) {
+      return res.status(400).json({
+        error: "حالة القضية غير صالحة"
+      });
+    }
+
+    if (secrecy_level !== undefined &&
+        !secrecyLevels.includes(secrecy_level)) {
+      return res.status(400).json({
+        error: "درجة السرية غير صالحة"
+      });
+    }
+
+    const client = await pool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      const result = await client.query(
+        `UPDATE cases SET
+          title = COALESCE($1, title),
+          description = COALESCE($2, description),
+          category = COALESCE($3, category),
+          status = COALESCE($4, status),
+          secrecy_level = COALESCE($5, secrecy_level)
+         WHERE id = $6
+         RETURNING *`,
+        [
+          title === undefined ? null : title.trim(),
+          description === undefined ? null : description.trim(),
+          category === undefined ? null : category.trim(),
+          status === undefined ? null : status,
+          secrecy_level === undefined ? null : secrecy_level,
+          req.params.id
+        ]
+      );
+
+      if (result.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          error: "القضية غير موجودة"
+        });
+      }
+
+      await client.query(
+        `INSERT INTO audit_logs (officer_id, action, details)
+         VALUES ($1, $2, $3)`,
+        [
+          req.session.officer.id,
+          "UPDATE_CASE",
+          `تحديث القضية: ${result.rows[0].title}`
+        ]
+      );
+
+      await client.query("COMMIT");
+
+      res.json({
+        success: true,
+        message: "تم تحديث القضية بنجاح",
+        case: result.rows[0]
+      });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      next(error);
+    } finally {
+      client.release();
+    }
+  });
+
+  // حذف قضية - للمدير أو منشئ القضية
+  router.delete("/:id", requireLogin, async (req, res, next) => {
+    const client = await pool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      const result = await client.query(
+        "SELECT * FROM cases WHERE id = $1 FOR UPDATE",
+        [req.params.id]
+      );
+
+      if (result.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          error: "القضية غير موجودة"
+        });
+      }
+
+      const existingCase = result.rows[0];
+      const isAdmin =
+        String(req.session.officer.role).toLowerCase() === "admin";
+
+      if (
+        !isAdmin &&
+        String(existingCase.created_by) !== String(req.session.officer.id)
+      ) {
+        await client.query("ROLLBACK");
+        return res.status(403).json({
+          error: "لا تملك صلاحية حذف هذه القضية"
+        });
+      }
+
+      await client.query(
+        "DELETE FROM cases WHERE id = $1",
+        [req.params.id]
+      );
+
+      await client.query(
+        `INSERT INTO audit_logs (officer_id, action, details)
+         VALUES ($1, $2, $3)`,
+        [
+          req.session.officer.id,
+          "DELETE_CASE",
+          `حذف القضية: ${existingCase.title}`
+        ]
+      );
+
+      await client.query("COMMIT");
+
+      res.json({
+        success: true,
+        message: "تم حذف القضية بنجاح"
+      });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      next(error);
+    } finally {
+      client.release();
+    }
+  });
+
+  return router;
+};
