@@ -21,6 +21,16 @@ module.exports = function (pool) {
     next();
   }
 
+  // تسجيل العملية في سجل العمليات
+  async function writeAudit(client, officerId, action, details) {
+    await client.query(
+      `INSERT INTO audit_logs (officer_id, action, details)
+       VALUES ($1, $2, $3)`,
+      [officerId, action, details]
+    );
+  }
+
+  // عرض جميع العملاء
   router.get("/", requireAdmin, async (req, res, next) => {
     try {
       const result = await pool.query(
@@ -38,7 +48,10 @@ module.exports = function (pool) {
     }
   });
 
+  // إنشاء عميل جديد
   router.post("/", requireAdmin, async (req, res, next) => {
+    const client = await pool.connect();
+
     try {
       const { username, password, full_name, rank } = req.body;
 
@@ -67,25 +80,35 @@ module.exports = function (pool) {
 
       const passwordHash = await bcrypt.hash(password, 12);
 
-      const result = await pool.query(
+      await client.query("BEGIN");
+
+      const result = await client.query(
         `INSERT INTO officers
           (username, password_hash, full_name, rank, role, active)
          VALUES ($1, $2, $3, $4, 'officer', TRUE)
          RETURNING id, username, full_name, rank, role, active`,
-        [
-          username.trim(),
-          passwordHash,
-          full_name.trim(),
-          rank
-        ]
+        [username.trim(), passwordHash, full_name.trim(), rank]
       );
+
+      const officer = result.rows[0];
+
+      await writeAudit(
+        client,
+        req.session.officer.id,
+        "CREATE_OFFICER",
+        `تم إنشاء حساب العميل: ${officer.full_name} (${officer.username}) - الرتبة: ${officer.rank}`
+      );
+
+      await client.query("COMMIT");
 
       res.status(201).json({
         success: true,
         message: "تم إنشاء حساب العميل بنجاح",
-        officer: result.rows[0]
+        officer
       });
     } catch (error) {
+      await client.query("ROLLBACK");
+
       if (error.code === "23505") {
         return res.status(409).json({
           error: "اسم المستخدم مستخدم بالفعل"
@@ -93,11 +116,15 @@ module.exports = function (pool) {
       }
 
       next(error);
+    } finally {
+      client.release();
     }
   });
 
   // تعطيل أو تفعيل حساب عميل
   router.patch("/:id/status", requireAdmin, async (req, res, next) => {
+    const client = await pool.connect();
+
     try {
       const { active } = req.body;
 
@@ -107,19 +134,44 @@ module.exports = function (pool) {
         });
       }
 
-      const result = await pool.query(
-        `UPDATE officers
-         SET active = $1
-         WHERE id = $2 AND role <> 'admin'
-         RETURNING id, username, full_name, active`,
-        [active, req.params.id]
+      await client.query("BEGIN");
+
+      const current = await client.query(
+        `SELECT id, username, full_name, active
+         FROM officers
+         WHERE id = $1 AND role <> 'admin'
+         FOR UPDATE`,
+        [req.params.id]
       );
 
-      if (result.rows.length === 0) {
+      if (current.rows.length === 0) {
+        await client.query("ROLLBACK");
+
         return res.status(404).json({
           error: "العميل غير موجود أو لا يمكن تعديل حسابه"
         });
       }
+
+      const previous = current.rows[0];
+
+      const result = await client.query(
+        `UPDATE officers
+         SET active = $1
+         WHERE id = $2
+         RETURNING id, username, full_name, active`,
+        [active, req.params.id]
+      );
+
+      if (previous.active !== active) {
+        await writeAudit(
+          client,
+          req.session.officer.id,
+          active ? "ACTIVATE_OFFICER" : "DISABLE_OFFICER",
+          `${active ? "تم تفعيل" : "تم تعطيل"} حساب العميل: ${previous.full_name} (${previous.username})`
+        );
+      }
+
+      await client.query("COMMIT");
 
       res.json({
         success: true,
@@ -127,14 +179,21 @@ module.exports = function (pool) {
         officer: result.rows[0]
       });
     } catch (error) {
+      await client.query("ROLLBACK");
       next(error);
+    } finally {
+      client.release();
     }
   });
 
   // حذف حساب عميل نهائياً
   router.delete("/:id", requireAdmin, async (req, res, next) => {
+    const client = await pool.connect();
+
     try {
-      const result = await pool.query(
+      await client.query("BEGIN");
+
+      const result = await client.query(
         `DELETE FROM officers
          WHERE id = $1 AND role <> 'admin'
          RETURNING id, username, full_name`,
@@ -142,17 +201,32 @@ module.exports = function (pool) {
       );
 
       if (result.rows.length === 0) {
+        await client.query("ROLLBACK");
+
         return res.status(404).json({
           error: "العميل غير موجود أو لا يمكن حذف حسابه"
         });
       }
 
+      const officer = result.rows[0];
+
+      await writeAudit(
+        client,
+        req.session.officer.id,
+        "DELETE_OFFICER",
+        `تم حذف حساب العميل: ${officer.full_name} (${officer.username})`
+      );
+
+      await client.query("COMMIT");
+
       res.json({
         success: true,
         message: "تم حذف حساب العميل",
-        officer: result.rows[0]
+        officer
       });
     } catch (error) {
+      await client.query("ROLLBACK");
+
       if (error.code === "23503") {
         return res.status(409).json({
           error: "هذا العميل مرتبط بسجلات أخرى. عطّل حسابه بدلاً من حذفه."
@@ -160,6 +234,8 @@ module.exports = function (pool) {
       }
 
       next(error);
+    } finally {
+      client.release();
     }
   });
 
