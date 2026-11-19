@@ -112,6 +112,18 @@ CREATE TABLE IF NOT EXISTS wanted_images (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 10. السجل التاريخي للقضايا
+CREATE TABLE IF NOT EXISTS case_history (
+    id BIGSERIAL PRIMARY KEY,
+    case_id BIGINT NOT NULL
+        REFERENCES cases(id) ON DELETE CASCADE,
+    officer_id BIGINT
+        REFERENCES officers(id) ON DELETE SET NULL,
+    action VARCHAR(50) NOT NULL,
+    details TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- الفهارس
 CREATE INDEX IF NOT EXISTS cases_status_idx
 ON cases(status);
@@ -130,3 +142,6 @@ ON wanted_history(wanted_id);
 
 CREATE INDEX IF NOT EXISTS wanted_images_wanted_id_idx
 ON wanted_images(wanted_id);
+
+CREATE INDEX IF NOT EXISTS case_history_case_id_idx
+ON case_history(case_id);
