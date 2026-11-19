@@ -71,7 +71,7 @@ function requireAdmin(req, res, next) {
 const createAuthRouter = require("./routes/auth");
 app.use("/api/auth", createAuthRouter(pool));
 
-// إدارة العملاء
+// إدارة الضباط
 const createOfficersRouter = require("./routes/officers");
 app.use("/api/officers", createOfficersRouter(pool));
 
@@ -82,6 +82,10 @@ app.use("/api/relationships", createRelationshipsRouter(pool));
 // ملفات القضايا
 const createCasesRouter = require("./routes/cases");
 app.use("/api/cases", createCasesRouter(pool));
+
+// المطلوبون
+const createWantedRouter = require("./routes/wanted");
+app.use("/api/wanted", createWantedRouter(pool));
 
 // سجل العمليات - للمدير فقط
 app.get("/api/audit-logs", requireAdmin, async (req, res, next) => {
