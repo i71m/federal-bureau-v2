@@ -100,7 +100,6 @@ module.exports = function (pool) {
 
       const wanted = result.rows[0];
 
-      // تسجيل عملية إنشاء المطلوب
       await client.query(
         `INSERT INTO wanted_history
         (wanted_id, officer_id, action, details)
@@ -177,7 +176,6 @@ module.exports = function (pool) {
 
       await client.query("BEGIN");
 
-      // جلب البيانات السابقة
       const oldResult = await client.query(
         `SELECT *
          FROM wanted_persons
@@ -197,7 +195,6 @@ module.exports = function (pool) {
 
       const oldWanted = oldResult.rows[0];
 
-      // تحديث بيانات المطلوب
       const result = await client.query(
         `UPDATE wanted_persons
          SET full_name = $1,
@@ -221,7 +218,6 @@ module.exports = function (pool) {
 
       const updatedWanted = result.rows[0];
 
-      // تحديد التغييرات التي حدثت
       const changes = {};
 
       const fields = [
@@ -245,13 +241,11 @@ module.exports = function (pool) {
         }
       }
 
-      // تحديد نوع الحدث
       const action =
         oldWanted.status !== updatedWanted.status
           ? "STATUS_CHANGE"
           : "UPDATE";
 
-      // تسجيل التغييرات في السجل
       if (Object.keys(changes).length > 0) {
         await client.query(
           `INSERT INTO wanted_history
@@ -285,6 +279,107 @@ module.exports = function (pool) {
       res.status(500).json({
         success: false,
         error: "تعذر تحديث بيانات المطلوب"
+      });
+
+    } finally {
+      client.release();
+    }
+  });
+
+  // الحذف النهائي للمطلوب - المدير فقط
+  router.delete("/:id", requireLogin, async (req, res) => {
+    const isAdmin =
+      String(req.session.officer.role || "").toLowerCase() === "admin";
+
+    if (!isAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: "هذه العملية متاحة للمدير فقط"
+      });
+    }
+
+    const { id } = req.params;
+
+    if (!validId(id)) {
+      return res.status(400).json({
+        success: false,
+        error: "رقم المطلوب غير صالح"
+      });
+    }
+
+    const client = await pool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      const result = await client.query(
+        `SELECT *
+         FROM wanted_persons
+         WHERE id = $1
+         FOR UPDATE`,
+        [id]
+      );
+
+      if (!result.rows.length) {
+        await client.query("ROLLBACK");
+
+        return res.status(404).json({
+          success: false,
+          error: "المطلوب غير موجود"
+        });
+      }
+
+      const wanted = result.rows[0];
+
+      // حذف الصور والسجل التاريخي المرتبطين بالملف
+      await client.query(
+        "DELETE FROM wanted_images WHERE wanted_id = $1",
+        [id]
+      );
+
+      await client.query(
+        "DELETE FROM wanted_history WHERE wanted_id = $1",
+        [id]
+      );
+
+      // حذف ملف المطلوب نهائياً
+      await client.query(
+        "DELETE FROM wanted_persons WHERE id = $1",
+        [id]
+      );
+
+      // الاحتفاظ بأثر عملية الحذف في سجل العمليات العام
+      await client.query(
+        `INSERT INTO audit_logs
+        (officer_id, action, details)
+        VALUES ($1, $2, $3)`,
+        [
+          req.session.officer.id,
+          "DELETE_WANTED",
+          JSON.stringify({
+            message: "تم حذف ملف مطلوب نهائياً",
+            wanted_id: wanted.id,
+            full_name: wanted.full_name,
+            alias: wanted.alias
+          })
+        ]
+      );
+
+      await client.query("COMMIT");
+
+      res.json({
+        success: true,
+        message: "تم حذف ملف المطلوب وصوره وسجله التاريخي نهائياً"
+      });
+
+    } catch (error) {
+      await client.query("ROLLBACK");
+
+      console.error("Wanted DELETE error:", error);
+
+      res.status(500).json({
+        success: false,
+        error: "تعذر حذف ملف المطلوب"
       });
 
     } finally {
