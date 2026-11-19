@@ -1,3 +1,4 @@
+
 -- FEDERAL BUREAU DATABASE
 -- PostgreSQL
 
@@ -85,8 +86,30 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 8. سجل تاريخ المطلوبين
+CREATE TABLE IF NOT EXISTS wanted_history (
+    id BIGSERIAL PRIMARY KEY,
+    wanted_id BIGINT NOT NULL
+        REFERENCES wanted_persons(id) ON DELETE CASCADE,
+    officer_id BIGINT
+        REFERENCES officers(id) ON DELETE SET NULL,
+    action VARCHAR(30) NOT NULL,
+    details TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- الفهارس
-CREATE INDEX IF NOT EXISTS cases_status_idx ON cases(status);
-CREATE INDEX IF NOT EXISTS wanted_status_idx ON wanted_persons(status);
-CREATE INDEX IF NOT EXISTS reports_officer_idx ON reports(officer_id);
-CREATE INDEX IF NOT EXISTS audit_created_idx ON audit_logs(created_at);
+CREATE INDEX IF NOT EXISTS cases_status_idx
+ON cases(status);
+
+CREATE INDEX IF NOT EXISTS wanted_status_idx
+ON wanted_persons(status);
+
+CREATE INDEX IF NOT EXISTS reports_officer_idx
+ON reports(officer_id);
+
+CREATE INDEX IF NOT EXISTS audit_created_idx
+ON audit_logs(created_at);
+
+CREATE INDEX IF NOT EXISTS wanted_history_wanted_id_idx
+ON wanted_history(wanted_id);
