@@ -52,7 +52,7 @@ th,td{padding:13px;text-align:right;border-bottom:1px solid #34445b;font-size:13
 th{color:#d7b46a;background:#0b1728}
 .small-button{padding:7px 12px;border:0;border-radius:5px;background:#315b49;color:white}
 .delete-button{padding:7px 12px;border:0;border-radius:5px;background:#792f36;color:white;margin-right:5px}
-.edit-button{padding:7px 12px;border:0;border-radius:5px;background:#8b6b32;color:white;margin-right:5px}
+.edit-button{padding:7px 12px;border:0;border-radius:5px;background:#8a6932;color:white;margin-right:5px}
 .active-label{color:#83d6a8}
 .disabled-label{color:#ff8585}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:15px 0}
@@ -68,15 +68,12 @@ th{color:#d7b46a;background:#0b1728}
 .network-stat strong{display:block;font-size:22px;color:#d7b46a;margin-top:6px}
 .person-name{font-size:19px;color:#d7b46a;font-weight:bold;margin:12px 0}
 .relation-item{padding:10px;background:#111e32;border-radius:7px;margin:8px 0;font-size:13px;line-height:1.8}
+.tag{display:inline-block;padding:5px 9px;background:#263b54;border-radius:15px;font-size:11px;color:#d7b46a;margin:3px}
 .empty{padding:30px;text-align:center;color:#8491a5}
-.case-number{color:#d7b46a;font-weight:bold;white-space:nowrap}
-.case-status{display:inline-block;padding:5px 9px;border-radius:15px;background:#263b54;color:#d7b46a;font-size:11px}
-.case-priority{font-weight:bold}
-.priority-high{color:#ffbd69}
-.priority-critical{color:#ff8585}
-.priority-normal{color:#83d6a8}
-.form-actions{display:flex;gap:10px;flex-wrap:wrap}
-.form-actions button{margin-top:10px}
+.case-status{display:inline-block;padding:5px 9px;border-radius:12px;background:#263b54;color:#d7b46a;font-size:11px}
+.case-open{color:#83d6a8}
+.case-closed{color:#aab5c8}
+.case-urgent{color:#ff8585}
 footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 @media(max-width:850px){.network-layout{grid-template-columns:1fr}.network-box{min-height:400px}#network{height:400px}}
 @media(max-width:600px){header{padding:15px}.brand{font-size:18px}.container{padding:14px}.hero h1{font-size:25px}.panel{padding:14px}}
@@ -185,69 +182,66 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 
    <!-- CASES -->
    <div id="casesSection" class="hidden">
-    <h2>إدارة ملفات القضايا</h2>
+    <h2>مركز إدارة القضايا</h2>
     <p>إنشاء ملفات القضايا ومتابعة حالتها وأولويتها والضباط المكلّفين بها.</p>
 
     <div class="grid">
      <div class="network-stat">إجمالي القضايا<strong id="casesTotal">0</strong></div>
-     <div class="network-stat">قضايا مفتوحة<strong id="casesOpen">0</strong></div>
-     <div class="network-stat">قضايا قيد العمل<strong id="casesProgress">0</strong></div>
-     <div class="network-stat">قضايا مغلقة<strong id="casesClosed">0</strong></div>
+     <div class="network-stat">القضايا المفتوحة<strong id="casesOpen">0</strong></div>
+     <div class="network-stat">القضايا المغلقة<strong id="casesClosed">0</strong></div>
     </div>
 
     <div class="panel">
      <h3 id="caseFormTitle">إنشاء قضية جديدة</h3>
      <form id="caseForm">
+      <input type="hidden" id="editingCaseId">
       <div class="form-grid">
        <input id="caseTitle" placeholder="عنوان القضية" maxlength="200" required>
        <select id="caseStatus" required>
         <option value="Open">مفتوحة</option>
-        <option value="In Progress">قيد العمل</option>
+        <option value="In Progress">قيد التحقيق</option>
+        <option value="Under Review">قيد المراجعة</option>
         <option value="Closed">مغلقة</option>
        </select>
        <select id="casePriority" required>
         <option value="Normal">عادية</option>
         <option value="High">مرتفعة</option>
         <option value="Critical">حرجة</option>
+        <option value="Low">منخفضة</option>
        </select>
-       <div id="caseOfficerField">
-        <select id="caseAssignedTo">
-         <option value="">بدون ضابط مكلّف</option>
-        </select>
-       </div>
+       <input id="caseAssignedTo" type="number" min="1" placeholder="رقم الضابط المكلّف (اختياري)">
       </div>
-      <textarea id="caseDescription" placeholder="وصف القضية والتفاصيل..." maxlength="10000"></textarea>
-      <div class="form-actions">
-       <button class="primary" id="saveCaseButton" type="submit">إنشاء القضية</button>
-       <button class="secondary hidden" id="cancelCaseEdit" type="button">إلغاء التعديل</button>
-      </div>
+      <textarea id="caseDescription" placeholder="تفاصيل القضية ووصفها"></textarea>
+      <button class="primary full" id="saveCaseButton" type="submit">إنشاء القضية</button>
+      <button class="secondary full hidden" id="cancelCaseEdit" type="button">إلغاء التعديل</button>
      </form>
      <div id="caseMessage" class="message"></div>
     </div>
 
     <div class="toolbar">
-     <h3>سجل القضايا</h3>
-     <button class="primary" id="refreshCases">تحديث القضايا</button>
-    </div>
-    <div class="toolbar">
-     <input id="caseSearch" placeholder="ابحث برقم القضية أو عنوانها...">
-     <select id="caseFilter" style="max-width:200px">
+     <input id="caseSearch" placeholder="ابحث برقم القضية أو العنوان أو اسم الضابط...">
+     <select id="caseStatusFilter" style="max-width:190px">
       <option value="">جميع الحالات</option>
       <option value="Open">مفتوحة</option>
-      <option value="In Progress">قيد العمل</option>
+      <option value="In Progress">قيد التحقيق</option>
+      <option value="Under Review">قيد المراجعة</option>
       <option value="Closed">مغلقة</option>
      </select>
+     <button class="secondary" id="refreshCases">تحديث القضايا</button>
     </div>
+
     <div id="casesListMessage" class="message"></div>
     <div class="table-wrap">
      <table>
       <thead>
        <tr>
-        <th>رقم القضية</th><th>العنوان</th><th>الحالة</th>
-        <th>الأولوية</th><th>الضابط المكلّف</th><th>تاريخ الإنشاء</th><th>الإجراءات</th>
+        <th>رقم القضية</th><th>العنوان</th><th>الحالة</th><th>الأولوية</th>
+        <th>الضابط المكلّف</th><th>منشئ القضية</th><th>تاريخ الإنشاء</th><th>الإجراءات</th>
        </tr>
       </thead>
-      <tbody id="casesTable"><tr><td colspan="7">جارٍ التحميل...</td></tr></tbody>
+      <tbody id="casesTable">
+       <tr><td colspan="8">جارٍ تحميل القضايا...</td></tr>
+      </tbody>
      </table>
     </div>
    </div>
@@ -320,6 +314,7 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 
 <footer>FEDERAL BUREAU © 2026 — ALL RIGHTS RESERVED</footer>
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
 <script>
 const loginPage=document.getElementById("loginPage");
 const dashboardPage=document.getElementById("dashboardPage");
@@ -334,8 +329,6 @@ let networkNodes=null;
 let networkEdges=null;
 let selectedPerson=null;
 let casesData=[];
-let editingCaseId=null;
-let officersForCases=[];
 
 const sectionInfo={
  wanted:["المطلوبون","قسم المطلوبين يحتاج إلى مسارات API مستقلة قبل تفعيله."],
@@ -348,11 +341,13 @@ const sectionInfo={
 function isAdmin(){
  return currentOfficer&&String(currentOfficer.role||"").toLowerCase()==="admin";
 }
+
 function showLogin(){
  currentOfficer=null;
  dashboardPage.classList.add("hidden");
  loginPage.classList.remove("hidden");
 }
+
 function showDashboard(officer){
  currentOfficer=officer;
  loginPage.classList.add("hidden");
@@ -360,6 +355,7 @@ function showDashboard(officer){
  document.getElementById("officerName").textContent=officer.full_name||officer.username;
  document.getElementById("officerRank").textContent="الرتبة: "+(officer.rank||"غير محددة");
 }
+
 async function checkSession(){
  try{
   const response=await fetch("/api/auth/me",{credentials:"same-origin"});
@@ -406,6 +402,7 @@ document.getElementById("logoutButton").addEventListener("click",async()=>{
 });
 
 /* OFFICERS */
+
 async function loadOfficers(){
  const tbody=document.getElementById("officersTable");
  const message=document.getElementById("listMessage");
@@ -505,65 +502,80 @@ document.getElementById("officerForm").addEventListener("submit",async event=>{
 });
 
 /* CASE MANAGEMENT */
+
 function statusArabic(status){
- return {"Open":"مفتوحة","In Progress":"قيد العمل","Closed":"مغلقة"}[status]||status||"غير محددة";
+ const labels={
+  "Open":"مفتوحة",
+  "In Progress":"قيد التحقيق",
+  "Under Review":"قيد المراجعة",
+  "Closed":"مغلقة"
+ };
+ return labels[status]||status||"غير محددة";
 }
+
 function priorityArabic(priority){
- return {"Normal":"عادية","High":"مرتفعة","Critical":"حرجة"}[priority]||priority||"عادية";
+ const labels={
+  "Normal":"عادية",
+  "High":"مرتفعة",
+  "Critical":"حرجة",
+  "Low":"منخفضة"
+ };
+ return labels[priority]||priority||"عادية";
 }
+
 function formatDate(value){
  if(!value)return "—";
  const date=new Date(value);
  if(Number.isNaN(date.getTime()))return "—";
- return date.toLocaleDateString("ar-SA");
+ return date.toLocaleDateString("en-GB");
 }
-async function loadCaseOfficers(){
- if(!isAdmin())return;
+
+async function loadCases(){
+ const tbody=document.getElementById("casesTable");
+ const message=document.getElementById("casesListMessage");
+ tbody.innerHTML='<tr><td colspan="8">جارٍ تحميل القضايا...</td></tr>';
+ message.textContent="";
  try{
-  const response=await fetch("/api/officers",{credentials:"same-origin"});
+  const response=await fetch("/api/cases",{credentials:"same-origin"});
   const data=await response.json();
-  if(!response.ok)throw new Error(data.error||"تعذر تحميل الضباط");
-  officersForCases=(data.officers||[]).filter(o=>o.active);
-  const select=document.getElementById("caseAssignedTo");
-  const current=select.value;
-  select.innerHTML='<option value="">بدون ضابط مكلّف</option>';
-  officersForCases.forEach(officer=>{
-   const option=document.createElement("option");
-   option.value=officer.id;
-   option.textContent=officer.full_name+" — "+(officer.rank||"");
-   select.appendChild(option);
-  });
-  if(current)select.value=current;
+  if(!response.ok)throw new Error(data.error||"تعذر تحميل القضايا");
+
+  if(!Array.isArray(data))throw new Error("استجابة القضايا غير متوقعة");
+  casesData=data;
+
+  document.getElementById("caseCount").textContent=casesData.length;
+  document.getElementById("casesTotal").textContent=casesData.length;
+  document.getElementById("casesOpen").textContent=casesData.filter(c=>c.status!=="Closed").length;
+  document.getElementById("casesClosed").textContent=casesData.filter(c=>c.status==="Closed").length;
+
+  renderCasesTable();
  }catch(error){
-  console.error("Case officers:",error);
+  tbody.innerHTML='<tr><td colspan="8">تعذر تحميل القضايا.</td></tr>';
+  message.style.color="#ff8585";
+  message.textContent=error.message;
  }
 }
-function updateCaseStats(){
- document.getElementById("casesTotal").textContent=casesData.length;
- document.getElementById("casesOpen").textContent=casesData.filter(c=>c.status==="Open").length;
- document.getElementById("casesProgress").textContent=casesData.filter(c=>c.status==="In Progress").length;
- document.getElementById("casesClosed").textContent=casesData.filter(c=>c.status==="Closed").length;
- document.getElementById("caseCount").textContent=casesData.length;
-}
-function renderCases(){
+
+function renderCasesTable(){
  const tbody=document.getElementById("casesTable");
  const search=document.getElementById("caseSearch").value.trim().toLowerCase();
- const filter=document.getElementById("caseFilter").value;
+ const filter=document.getElementById("caseStatusFilter").value;
+
  const filtered=casesData.filter(c=>{
-  const matchesSearch=String(c.case_number||"").toLowerCase().includes(search)||
-   String(c.title||"").toLowerCase().includes(search);
-  return matchesSearch&&(!filter||c.status===filter);
+  const text=[c.case_number,c.title,c.assigned_officer_name,c.creator_name].join(" ").toLowerCase();
+  return text.includes(search)&&(!filter||c.status===filter);
  });
+
  tbody.innerHTML="";
  if(!filtered.length){
-  tbody.innerHTML='<tr><td colspan="7">لا توجد قضايا مطابقة.</td></tr>';
+  tbody.innerHTML='<tr><td colspan="8">لا توجد قضايا مطابقة للبحث.</td></tr>';
   return;
  }
+
  filtered.forEach(c=>{
   const tr=document.createElement("tr");
 
   const number=document.createElement("td");
-  number.className="case-number";
   number.textContent=c.case_number||"—";
   tr.appendChild(number);
 
@@ -573,135 +585,160 @@ function renderCases(){
 
   const status=document.createElement("td");
   const statusTag=document.createElement("span");
-  statusTag.className="case-status";
+  statusTag.className="case-status "+(c.status==="Closed"?"case-closed":"case-open");
   statusTag.textContent=statusArabic(c.status);
   status.appendChild(statusTag);
   tr.appendChild(status);
 
   const priority=document.createElement("td");
-  priority.className="case-priority "+(c.priority==="Critical"?"priority-critical":c.priority==="High"?"priority-high":"priority-normal");
   priority.textContent=priorityArabic(c.priority);
+  if(c.priority==="Critical"||c.priority==="High")priority.className="case-urgent";
   tr.appendChild(priority);
 
-  const assigned=document.createElement("td");
-  assigned.textContent=c.assigned_officer_name||"غير مكلّف";
-  tr.appendChild(assigned);
-
-  const created=document.createElement("td");
-  created.textContent=formatDate(c.created_at);
-  tr.appendChild(created);
+  [c.assigned_officer_name||"غير معيّن",c.creator_name||"—",formatDate(c.created_at)].forEach(value=>{
+   const td=document.createElement("td");
+   td.textContent=value;
+   tr.appendChild(td);
+  });
 
   const actions=document.createElement("td");
-  const edit=document.createElement("button");
-  edit.className="edit-button";
-  edit.textContent="تعديل";
-  edit.onclick=()=>startCaseEdit(c);
 
-  const del=document.createElement("button");
-  del.className="delete-button";
-  del.textContent="حذف";
-  del.onclick=()=>deleteCase(c);
+  const viewButton=document.createElement("button");
+  viewButton.className="small-button";
+  viewButton.textContent="عرض";
+  viewButton.onclick=()=>viewCase(c.id);
 
-  actions.append(edit,del);
+  const editButton=document.createElement("button");
+  editButton.className="edit-button";
+  editButton.textContent="تعديل";
+  editButton.onclick=()=>editCase(c.id);
+
+  const deleteButton=document.createElement("button");
+  deleteButton.className="delete-button";
+  deleteButton.textContent="حذف";
+  deleteButton.onclick=()=>deleteCase(c.id);
+
+  actions.append(viewButton,editButton,deleteButton);
   tr.appendChild(actions);
   tbody.appendChild(tr);
  });
 }
-async function loadCases(){
- const tbody=document.getElementById("casesTable");
- const message=document.getElementById("casesListMessage");
- tbody.innerHTML='<tr><td colspan="7">جارٍ تحميل القضايا...</td></tr>';
- message.textContent="";
- try{
-  const response=await fetch("/api/cases",{credentials:"same-origin"});
-  const data=await response.json();
-  if(!response.ok)throw new Error(data.error||"تعذر تحميل القضايا");
-  if(!Array.isArray(data))throw new Error("صيغة بيانات القضايا غير متوقعة");
-  casesData=data;
-  updateCaseStats();
-  renderCases();
- }catch(error){
-  tbody.innerHTML='<tr><td colspan="7">تعذر تحميل القضايا.</td></tr>';
-  message.style.color="#ff8585";
-  message.textContent=error.message;
- }
-}
-function resetCaseForm(){
- editingCaseId=null;
- document.getElementById("caseForm").reset();
- document.getElementById("caseStatus").value="Open";
- document.getElementById("casePriority").value="Normal";
- document.getElementById("caseFormTitle").textContent="إنشاء قضية جديدة";
- document.getElementById("saveCaseButton").textContent="إنشاء القضية";
- document.getElementById("cancelCaseEdit").classList.add("hidden");
- document.getElementById("caseMessage").textContent="";
-}
-function startCaseEdit(c){
- editingCaseId=c.id;
- document.getElementById("caseTitle").value=c.title||"";
- document.getElementById("caseDescription").value=c.description||"";
- document.getElementById("caseStatus").value=c.status||"Open";
- document.getElementById("casePriority").value=c.priority||"Normal";
- if(isAdmin())document.getElementById("caseAssignedTo").value=c.assigned_to||"";
- document.getElementById("caseFormTitle").textContent="تعديل القضية: "+(c.case_number||"");
- document.getElementById("saveCaseButton").textContent="حفظ التعديلات";
- document.getElementById("cancelCaseEdit").classList.remove("hidden");
- document.getElementById("caseMessage").textContent="";
- document.getElementById("caseFormTitle").scrollIntoView({behavior:"smooth",block:"center"});
-}
+
 document.getElementById("caseForm").addEventListener("submit",async event=>{
  event.preventDefault();
+
  const button=document.getElementById("saveCaseButton");
  const message=document.getElementById("caseMessage");
- button.disabled=true;
- message.textContent="";
+ const editingId=document.getElementById("editingCaseId").value;
+
+ const assignedValue=document.getElementById("caseAssignedTo").value.trim();
  const payload={
   title:document.getElementById("caseTitle").value.trim(),
   description:document.getElementById("caseDescription").value.trim(),
   status:document.getElementById("caseStatus").value,
-  priority:document.getElementById("casePriority").value
+  priority:document.getElementById("casePriority").value,
+  assigned_to:assignedValue||null
  };
- if(isAdmin())payload.assigned_to=document.getElementById("caseAssignedTo").value;
- const isEditing=editingCaseId!==null;
- const url=isEditing?`/api/cases/${encodeURIComponent(editingCaseId)}`:"/api/cases";
+
+ button.disabled=true;
+ message.textContent="";
+
  try{
-  const response=await fetch(url,{
-   method:isEditing?"PATCH":"POST",
+  const response=await fetch(editingId?`/api/cases/${encodeURIComponent(editingId)}`:"/api/cases",{
+   method:editingId?"PATCH":"POST",
    headers:{"Content-Type":"application/json"},
    credentials:"same-origin",
    body:JSON.stringify(payload)
   });
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر حفظ القضية");
+
   message.style.color="#83d6a8";
-  message.textContent=isEditing?"تم تحديث القضية بنجاح.":"تم إنشاء القضية بنجاح.";
+  message.textContent=editingId?"تم تحديث القضية بنجاح.":"تم إنشاء القضية بنجاح.";
   resetCaseForm();
   await loadCases();
-  message.style.color="#83d6a8";
-  message.textContent=isEditing?"تم تحديث القضية بنجاح.":"تم إنشاء القضية بنجاح.";
  }catch(error){
   message.style.color="#ff8585";
   message.textContent=error.message;
- }finally{button.disabled=false;}
+ }finally{
+  button.disabled=false;
+ }
 });
+
+function resetCaseForm(){
+ document.getElementById("caseForm").reset();
+ document.getElementById("editingCaseId").value="";
+ document.getElementById("caseFormTitle").textContent="إنشاء قضية جديدة";
+ document.getElementById("saveCaseButton").textContent="إنشاء القضية";
+ document.getElementById("cancelCaseEdit").classList.add("hidden");
+}
+
+function editCase(id){
+ const c=casesData.find(item=>String(item.id)===String(id));
+ if(!c)return;
+
+ document.getElementById("editingCaseId").value=c.id;
+ document.getElementById("caseTitle").value=c.title||"";
+ document.getElementById("caseDescription").value=c.description||"";
+ document.getElementById("caseStatus").value=c.status||"Open";
+ document.getElementById("casePriority").value=c.priority||"Normal";
+ document.getElementById("caseAssignedTo").value=c.assigned_to||"";
+
+ document.getElementById("caseFormTitle").textContent="تعديل القضية "+(c.case_number||"");
+ document.getElementById("saveCaseButton").textContent="حفظ التعديلات";
+ document.getElementById("cancelCaseEdit").classList.remove("hidden");
+ document.getElementById("caseMessage").textContent="";
+ document.getElementById("caseForm").scrollIntoView({behavior:"smooth"});
+}
+
 document.getElementById("cancelCaseEdit").addEventListener("click",resetCaseForm);
-async function deleteCase(c){
- if(!confirm("هل أنت متأكد من حذف القضية "+(c.case_number||"")+"؟"))return;
+
+async function viewCase(id){
  try{
-  const response=await fetch(`/api/cases/${encodeURIComponent(c.id)}`,{
+  const response=await fetch(`/api/cases/${encodeURIComponent(id)}`,{credentials:"same-origin"});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر عرض القضية");
+
+  alert(
+   "رقم القضية: "+(data.case_number||"—")+
+   "\nالعنوان: "+(data.title||"—")+
+   "\nالحالة: "+statusArabic(data.status)+
+   "\nالأولوية: "+priorityArabic(data.priority)+
+   "\nالضابط المكلّف: "+(data.assigned_officer_name||"غير معيّن")+
+   "\nمنشئ القضية: "+(data.creator_name||"—")+
+   "\n\nالوصف:\n"+(data.description||"لا يوجد وصف")
+  );
+ }catch(error){alert(error.message);}
+}
+
+async function deleteCase(id){
+ const c=casesData.find(item=>String(item.id)===String(id));
+ if(!c)return;
+
+ if(!confirm("هل أنت متأكد من حذف القضية "+c.case_number+"؟"))return;
+
+ try{
+  const response=await fetch(`/api/cases/${encodeURIComponent(id)}`,{
    method:"DELETE",credentials:"same-origin"
   });
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر حذف القضية");
-  alert("تم حذف القضية.");
+
+  document.getElementById("caseMessage").style.color="#83d6a8";
+  document.getElementById("caseMessage").textContent=data.message||"تم حذف القضية.";
   await loadCases();
- }catch(error){alert(error.message);}
+ }catch(error){
+  document.getElementById("caseMessage").style.color="#ff8585";
+  document.getElementById("caseMessage").textContent=error.message;
+ }
 }
+
+document.getElementById("caseSearch").addEventListener("input",renderCasesTable);
+document.getElementById("caseStatusFilter").addEventListener("change",renderCasesTable);
 document.getElementById("refreshCases").addEventListener("click",loadCases);
-document.getElementById("caseSearch").addEventListener("input",renderCases);
-document.getElementById("caseFilter").addEventListener("change",renderCases);
 
 /* RELATIONSHIP NETWORK */
+
 function getPeopleFromRelations(relations){
  const people=new Set();
  relations.forEach(r=>{
@@ -710,6 +747,7 @@ function getPeopleFromRelations(relations){
  });
  return [...people].filter(Boolean);
 }
+
 function buildNetwork(relations){
  if(typeof vis==="undefined"){
   document.getElementById("network").innerHTML='<div class="empty">تعذر تحميل مكتبة الشبكة. تحقق من اتصال الإنترنت ثم حدّث الصفحة.</div>';
@@ -731,6 +769,7 @@ function buildNetwork(relations){
  networkNodes=new vis.DataSet(nodes);
  networkEdges=new vis.DataSet(edges);
  const container=document.getElementById("network");
+ const data={nodes:networkNodes,edges:networkEdges};
  const options={
   autoResize:true,
   interaction:{hover:true,tooltipDelay:150,navigationButtons:true,keyboard:true},
@@ -739,7 +778,7 @@ function buildNetwork(relations){
   edges:{selectionWidth:2,hoverWidth:2}
  };
  if(networkInstance)networkInstance.destroy();
- networkInstance=new vis.Network(container,{nodes:networkNodes,edges:networkEdges},options);
+ networkInstance=new vis.Network(container,data,options);
  networkInstance.on("click",params=>{
   if(params.nodes.length)showPersonDetails(params.nodes[0]);
  });
@@ -747,6 +786,7 @@ function buildNetwork(relations){
  document.getElementById("totalPeople").textContent=people.length;
  document.getElementById("relationshipCount").textContent=relations.length;
 }
+
 function getPersonConnections(name){
  const direct=[];
  relationshipData.forEach(r=>{
@@ -757,6 +797,7 @@ function getPersonConnections(name){
  });
  return direct;
 }
+
 function getIndirectPeople(name){
  const visited=new Set([name]);
  const queue=[{name,depth:0}];
@@ -773,6 +814,7 @@ function getIndirectPeople(name){
  }
  return [...indirect.values()].filter(p=>p.depth>1);
 }
+
 function showPersonDetails(name){
  selectedPerson=name;
  const direct=getPersonConnections(name);
@@ -785,7 +827,7 @@ function showPersonDetails(name){
  title.textContent=name;
  details.appendChild(title);
  const directTitle=document.createElement("p");
- directTitle.textContent="العلاقات المباشرة: "+direct.length;
+ directTitle.innerHTML="<strong>العلاقات المباشرة: "+direct.length+"</strong>";
  details.appendChild(directTitle);
  if(!direct.length){
   const empty=document.createElement("div");
@@ -806,7 +848,7 @@ function showPersonDetails(name){
   details.appendChild(div);
  });
  const indirectTitle=document.createElement("p");
- indirectTitle.textContent="الأشخاص المرتبطون بشكل غير مباشر: "+indirect.length;
+ indirectTitle.innerHTML="<strong>الأشخاص المرتبطون بشكل غير مباشر: "+indirect.length+"</strong>";
  details.appendChild(indirectTitle);
  if(!indirect.length){
   const empty=document.createElement("div");
@@ -821,6 +863,7 @@ function showPersonDetails(name){
   details.appendChild(div);
  });
 }
+
 async function loadRelationships(){
  const table=document.getElementById("relationshipsTable");
  const message=document.getElementById("relationshipMessage");
@@ -846,6 +889,7 @@ async function loadRelationships(){
   message.textContent=error.message;
  }
 }
+
 function renderRelationshipsTable(){
  const tbody=document.getElementById("relationshipsTable");
  tbody.innerHTML="";
@@ -880,6 +924,7 @@ function renderRelationshipsTable(){
   tbody.appendChild(tr);
  });
 }
+
 document.getElementById("relationshipForm").addEventListener("submit",async event=>{
  event.preventDefault();
  const button=document.getElementById("addRelationshipButton");
@@ -908,6 +953,7 @@ document.getElementById("relationshipForm").addEventListener("submit",async even
   message.textContent=error.message;
  }finally{button.disabled=false;}
 });
+
 document.getElementById("networkSearch").addEventListener("input",event=>{
  const value=event.target.value.trim().toLowerCase();
  if(!networkNodes)return;
@@ -929,6 +975,7 @@ document.getElementById("networkSearch").addEventListener("input",event=>{
   showPersonDetails(matched);
  }
 });
+
 document.getElementById("refreshNetwork").addEventListener("click",loadRelationships);
 document.getElementById("resetNetwork").addEventListener("click",()=>{
  document.getElementById("networkSearch").value="";
@@ -939,6 +986,7 @@ document.getElementById("resetNetwork").addEventListener("click",()=>{
 });
 
 /* NAVIGATION */
+
 function openSection(key){
  const sectionView=document.getElementById("sectionView");
  const officersSection=document.getElementById("officersSection");
@@ -965,12 +1013,6 @@ function openSection(key){
  }else if(key==="cases"){
   casesSection.classList.remove("hidden");
   resetCaseForm();
-  if(isAdmin()){
-   document.getElementById("caseOfficerField").classList.remove("hidden");
-   loadCaseOfficers();
-  }else{
-   document.getElementById("caseOfficerField").classList.add("hidden");
-  }
   loadCases();
  }else{
   otherSection.classList.remove("hidden");
@@ -982,12 +1024,15 @@ function openSection(key){
  }
  sectionView.scrollIntoView({behavior:"smooth"});
 }
+
 document.querySelectorAll(".menu-card").forEach(card=>{
  card.addEventListener("click",()=>openSection(card.dataset.section));
 });
+
 document.getElementById("backButton").addEventListener("click",()=>{
  document.getElementById("sectionView").classList.add("hidden");
 });
+
 document.getElementById("refreshOfficers").addEventListener("click",loadOfficers);
 
 checkSession();
