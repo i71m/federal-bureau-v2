@@ -1,52 +1,433 @@
 
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FEDERAL BUREAU | Operations Center</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080f1c;color:#e9edf5;font-family:Arial,sans-serif}
+button{cursor:pointer;font-family:inherit}
+.hidden{display:none!important}
+header{background:#101c30;border-bottom:1px solid #b18a42;padding:20px 5%;display:flex;justify-content:space-between;align-items:center;gap:15px}
+.brand{font-size:23px;font-weight:bold;color:#d7b46a}
+.header-label{font-size:11px;color:#aab5c8}
+.hero{text-align:center;padding:40px 15px 25px}
+.hero h1{color:#d7b46a;margin:0 0 12px;font-size:32px}
+.hero p{color:#aab5c8}
+.status{display:inline-block;border:1px solid #315b49;color:#83d6a8;padding:8px 16px;border-radius:20px;font-size:12px}
+.container{max-width:1200px;margin:auto;padding:25px}
+.section-title{color:#d7b46a;font-size:21px;margin:10px 0 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.card{background:#111e32;border:1px solid #253750;border-radius:10px;padding:22px;min-height:135px;transition:.2s}
+.card:hover{border-color:#b18a42;transform:translateY(-2px)}
+.card h3{color:#d7b46a;margin:10px 0}
+.card p{color:#aab5c8;font-size:13px;line-height:1.8}
+.icon{font-size:25px;color:#d7b46a}
+.login{max-width:420px;margin:35px auto;background:#111e32;padding:25px;border:1px solid #34445b;border-radius:12px}
+.login h2{text-align:center;color:#d7b46a}
+input,select{width:100%;padding:13px;margin:9px 0;background:#091323;border:1px solid #34445b;border-radius:6px;color:white}
+button.primary{padding:13px;background:#b18a42;color:#101725;border:0;border-radius:6px;font-weight:bold}
+button.full{width:100%;margin-top:12px}
+button:disabled{opacity:.6;cursor:wait}
+.message{text-align:center;font-size:13px;margin-top:15px;line-height:1.8}
+.dashboard-top{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:25px}
+.officer{background:#111e32;border:1px solid #34445b;border-radius:10px;padding:15px 20px}
+.officer strong{color:#d7b46a}
+.logout{background:#792f36;color:white;border:0;padding:11px 18px;border-radius:6px}
+.stat-number{font-size:28px;color:#fff;font-weight:bold;margin:12px 0}
+.stat-label{color:#aab5c8;font-size:13px}
+.menu-card{cursor:pointer}
+.menu-card:focus{outline:2px solid #d7b46a}
+.panel{background:#111e32;border:1px solid #34445b;border-radius:10px;padding:22px;margin-top:22px}
+.panel h2,.panel h3{color:#d7b46a}
+.panel p{color:#aab5c8;line-height:1.8}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.table-wrap{overflow-x:auto;margin-top:20px}
+table{width:100%;border-collapse:collapse;min-width:800px}
+th,td{padding:13px;text-align:right;border-bottom:1px solid #34445b;font-size:13px}
+th{color:#d7b46a;background:#0b1728}
+td{color:#e9edf5}
+.small-button{padding:7px 12px;border:0;border-radius:5px;background:#315b49;color:white}
+.delete-button{padding:7px 12px;border:0;border-radius:5px;background:#792f36;color:white;margin-right:5px}
+.active-label{color:#83d6a8}
+.disabled-label{color:#ff8585}
+footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
+@media(max-width:600px){header{padding:16px}.brand{font-size:18px}.container{padding:16px}.hero h1{font-size:26px}}
+</style>
+</head>
+
+<body>
+
+<header>
+ <div class="brand">FEDERAL BUREAU</div>
+ <div class="header-label">SECURE OPERATIONS PORTAL</div>
+</header>
+
+<main id="loginPage">
+ <section class="hero">
+  <h1>FEDERAL BUREAU</h1>
+  <p>نظام إدارة العمليات والمعلومات الأمنية</p>
+  <div class="status">● SYSTEM INTERFACE ONLINE</div>
+ </section>
+
+ <div class="login">
+  <h2>تسجيل دخول الضباط</h2>
+  <form id="loginForm">
+   <input id="username" type="text" placeholder="اسم المستخدم" autocomplete="username" required>
+   <input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password" required>
+   <button class="primary full" id="loginButton" type="submit">دخول النظام</button>
+  </form>
+  <div id="loginMessage" class="message"></div>
+  <p style="text-align:center;color:#8491a5;font-size:12px">AUTHORIZED PERSONNEL ONLY</p>
+ </div>
+</main>
+
+<main id="dashboardPage" class="hidden">
+ <section class="hero">
+  <h1>OPERATIONS CENTER</h1>
+  <p>مركز إدارة العمليات والمعلومات الأمنية</p>
+  <div class="status">● SYSTEM ONLINE</div>
+ </section>
+
+ <div class="container">
+  <div class="dashboard-top">
+   <div class="officer">
+    <div style="color:#aab5c8;font-size:12px">الضابط المسجل</div>
+    <strong id="officerName">---</strong>
+    <div id="officerRank" style="color:#aab5c8;font-size:12px;margin-top:7px"></div>
+   </div>
+   <button class="logout" id="logoutButton">تسجيل الخروج</button>
+  </div>
+
+  <h2 class="section-title">لوحة القيادة</h2>
+  <div class="grid">
+   <div class="card"><div class="icon">♙</div><div class="stat-number" id="officerCount">--</div><div class="stat-label">إجمالي الضباط</div></div>
+   <div class="card"><div class="icon">⌕</div><div class="stat-number">--</div><div class="stat-label">المطلوبون</div></div>
+   <div class="card"><div class="icon">▤</div><div class="stat-number">--</div><div class="stat-label">القضايا المفتوحة</div></div>
+   <div class="card"><div class="icon">▧</div><div class="stat-number">--</div><div class="stat-label">التقارير الأمنية</div></div>
+  </div>
+
+  <h2 class="section-title" style="margin-top:35px">أقسام المكتب</h2>
+  <div class="grid">
+   <div class="card menu-card" data-section="officers"><div class="icon">♙</div><h3>إدارة الضباط</h3><p>إدارة الأفراد والرتب وحسابات الدخول.</p></div>
+   <div class="card menu-card" data-section="wanted"><div class="icon">⌕</div><h3>المطلوبون</h3><p>ملفات المطلوبين وبيانات البحث.</p></div>
+   <div class="card menu-card" data-section="cases"><div class="icon">▤</div><h3>ملفات القضايا</h3><p>إدارة القضايا والتحقيقات.</p></div>
+   <div class="card menu-card" data-section="reports"><div class="icon">▧</div><h3>التقارير الأمنية</h3><p>إنشاء التقارير ومراجعتها.</p></div>
+   <div class="card menu-card" data-section="evidence"><div class="icon">⬡</div><h3>الأدلة والمرفقات</h3><p>حفظ وتنظيم الأدلة والوثائق.</p></div>
+   <div class="card menu-card" data-section="relationships"><div class="icon">⌘</div><h3>شبكة العلاقات</h3><p>ربط الأشخاص والقضايا والمعلومات.</p></div>
+   <div class="card menu-card" data-section="permissions"><div class="icon">⬢</div><h3>الصلاحيات</h3><p>إدارة صلاحيات الوصول للنظام.</p></div>
+   <div class="card menu-card" data-section="audit"><div class="icon">▦</div><h3>سجل العمليات</h3><p>مراجعة أنشطة المستخدمين.</p></div>
+  </div>
+
+  <section id="sectionView" class="panel hidden">
+   <div id="officersSection" class="hidden">
+    <h2>إدارة الضباط</h2>
+    <p>إنشاء حسابات الضباط ومراجعة الأفراد المسجلين في النظام.</p>
+
+    <div id="adminOnly">
+     <h3>إضافة ضابط جديد</h3>
+     <form id="officerForm">
+      <div class="form-grid">
+       <input id="newFullName" placeholder="الاسم الكامل" required>
+       <input id="newUsername" placeholder="اسم المستخدم" required>
+       <input id="newPassword" type="password" placeholder="كلمة المرور (8 أحرف على الأقل)" minlength="8" required>
+       <select id="newRank" required>
+        <option value="">اختر الرتبة</option>
+        <option value="Agent 0">Agent 0</option>
+        <option value="Agent 1">Agent 1</option>
+        <option value="Agent 2">Agent 2</option>
+        <option value="Agent 3">Agent 3</option>
+        <option value="Agent 4">Agent 4</option>
+        <option value="Agent 5">Agent 5</option>
+        <option value="Agent 6">Agent 6</option>
+        <option value="Agent 7">Agent 7</option>
+        <option value="Agent 8">Agent 8</option>
+        <option value="Agent 9">Agent 9</option>
+        <option value="Agent 10">Agent 10</option>
+       </select>
+      </div>
+      <button class="primary full" id="createOfficerButton" type="submit">إنشاء حساب الضابط</button>
+     </form>
+     <div id="createMessage" class="message"></div>
+    </div>
+
+    <div id="officerAccessMessage" class="message hidden"></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:30px">
+     <h3>قائمة الضباط</h3>
+     <button class="primary" id="refreshOfficers">تحديث القائمة</button>
+    </div>
+    <div id="listMessage" class="message"></div>
+    <div class="table-wrap">
+     <table>
+      <thead>
+       <tr>
+        <th>الاسم</th>
+        <th>اسم المستخدم</th>
+        <th>الرتبة</th>
+        <th>الدور</th>
+        <th>الحالة</th>
+        <th>إدارة الحساب</th>
+       </tr>
+      </thead>
+      <tbody id="officersTable">
+       <tr><td colspan="6">جارٍ تحميل البيانات...</td></tr>
+      </tbody>
+     </table>
+    </div>
+   </div>
+
+   <div id="otherSection" class="hidden">
+    <h2 id="sectionTitle"></h2>
+    <p id="sectionDescription"></p>
+   </div>
+
+   <button class="primary full" id="backButton">العودة إلى لوحة القيادة</button>
+  </section>
+ </div>
+</main>
+
+<footer>FEDERAL BUREAU © 2026 — ALL RIGHTS RESERVED</footer>
+
+<script>
+const loginPage=document.getElementById("loginPage");
+const dashboardPage=document.getElementById("dashboardPage");
+const loginForm=document.getElementById("loginForm");
+const loginButton=document.getElementById("loginButton");
+const loginMessage=document.getElementById("loginMessage");
+
+let currentOfficer=null;
+
+function showLogin(){
+ currentOfficer=null;
+ dashboardPage.classList.add("hidden");
+ loginPage.classList.remove("hidden");
+}
+
+function showDashboard(officer){
+ currentOfficer=officer;
+ loginPage.classList.add("hidden");
+ dashboardPage.classList.remove("hidden");
+ document.getElementById("officerName").textContent=officer.full_name||officer.username;
+ document.getElementById("officerRank").textContent="الرتبة: "+(officer.rank||"غير محددة");
+}
+
+async function checkSession(){
+ try{
+  const response=await fetch("/api/auth/me",{credentials:"same-origin"});
+  if(!response.ok){showLogin();return;}
+  const data=await response.json();
+  if(data.authenticated&&data.officer){showDashboard(data.officer);}
+  else{showLogin();}
+ }catch(error){showLogin();}
+}
+
+loginForm.addEventListener("submit",async event=>{
+ event.preventDefault();
+ loginButton.disabled=true;
+ loginButton.textContent="جارٍ التحقق...";
+ loginMessage.textContent="";
+ try{
+  const response=await fetch("/api/auth/login",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   credentials:"same-origin",
+   body:JSON.stringify({
+    username:document.getElementById("username").value.trim(),
+    password:document.getElementById("password").value
+   })
+  });
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر تسجيل الدخول");
+  if(!data.officer)throw new Error("لم يتم استلام بيانات الضابط");
+  loginForm.reset();
+  showDashboard(data.officer);
+ }catch(error){
+  loginMessage.style.color="#ff8585";
+  loginMessage.textContent=error.message;
+ }finally{
+  loginButton.disabled=false;
+  loginButton.textContent="دخول النظام";
+ }
+});
+
+document.getElementById("logoutButton").addEventListener("click",async()=>{
+ try{
+  const response=await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});
+  if(!response.ok)throw new Error("تعذر تسجيل الخروج");
+  showLogin();
+ }catch(error){alert(error.message);}
+});
+
+const sectionInfo={
+ wanted:["المطلوبون","سيتم تفعيل ملفات المطلوبين وربطها بقاعدة البيانات في المرحلة القادمة."],
+ cases:["ملفات القضايا","سيتم تفعيل إدارة القضايا والتحقيقات في المرحلة القادمة."],
+ reports:["التقارير الأمنية","سيتم تفعيل إنشاء التقارير ومراجعتها في المرحلة القادمة."],
+ evidence:["الأدلة والمرفقات","سيتم تفعيل حفظ الأدلة والوثائق في المرحلة القادمة."],
+ relationships:["شبكة العلاقات","سيتم تفعيل ربط الأشخاص والقضايا والمعلومات في المرحلة القادمة."],
+ permissions:["الصلاحيات","سيتم تطوير إدارة الصلاحيات في المرحلة القادمة."],
+ audit:["سجل العمليات","سيتم تفعيل سجل عمليات المستخدمين في المرحلة القادمة."]
+};
+
+function isAdmin(){
+ return currentOfficer&&String(currentOfficer.role||"").toLowerCase()==="admin";
+}
+
+async function loadOfficers(){
+ const tbody=document.getElementById("officersTable");
+ const message=document.getElementById("listMessage");
+ tbody.innerHTML='<tr><td colspan="6">جارٍ تحميل البيانات...</td></tr>';
+ message.textContent="";
+
+ try{
+  const response=await fetch("/api/officers",{credentials:"same-origin"});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر تحميل قائمة الضباط");
+
+  const officers=data.officers||[];
+  document.getElementById("officerCount").textContent=officers.length;
+
+  if(officers.length===0){
+   tbody.innerHTML='<tr><td colspan="6">لا يوجد ضباط مسجلون.</td></tr>';
+   return;
+  }
+
+  tbody.innerHTML="";
+
+  officers.forEach(officer=>{
+   const tr=document.createElement("tr");
+
+   const values=[
+    officer.full_name,
+    officer.username,
+    officer.rank,
+    officer.role,
+    officer.active?"نشط":"معطل"
+   ];
+
+   values.forEach((value,index)=>{
+    const td=document.createElement("td");
+    td.textContent=value??"-";
+
+    if(index===4){
+     td.className=officer.active?"active-label":"disabled-label";
+    }
+
+    tr.appendChild(td);
+   });
+
+   const actions=document.createElement("td");
+
+   if(isAdmin()&&String(officer.role||"").toLowerCase()!=="admin"){
+    const statusButton=document.createElement("button");
+    statusButton.className="small-button";
+    statusButton.textContent=officer.active?"تعطيل":"تفعيل";
+
+    statusButton.addEventListener("click",async()=>{
+     const question=officer.active
+      ?"هل تريد تعطيل حساب "+officer.full_name+"؟"
+      :"هل تريد تفعيل حساب "+officer.full_name+"؟";
+
+     if(!confirm(question))return;
+
+     statusButton.disabled=true;
+
+     try{
+      const response=await fetch(
+       `/api/officers/${encodeURIComponent(officer.id)}/status`,
+       {
+        method:"PATCH",
+        headers:{"Content-Type":"application/json"},
+        credentials:"same-origin",
+        body:JSON.stringify({active:!officer.active})
+       }
+      );
+
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"تعذر تعديل الحساب");
+
+      await loadOfficers();
+     }catch(error){
+      alert(error.message);
+      statusButton.disabled=false;
+     }
+    });
+
+    const deleteButton=document.createElement("button");
+    deleteButton.className="delete-button";
+    deleteButton.textContent="حذف";
+
+    deleteButton.addEventListener("click",async()=>{
+     const confirmed=confirm(
+      "تحذير: هل أنت متأكد من حذف حساب "+officer.full_name+" نهائياً؟"
+     );
+
+     if(!confirmed)return;
+
+     deleteButton.disabled=true;
+
+     try{
+      const response=await fetch(
+       `/api/officers/${encodeURIComponent(officer.id)}`,
+       {
+        method:"DELETE",
+        credentials:"same-origin"
+       }
+      );
+
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"تعذر حذف الحساب");
+
+      alert("تم حذف حساب العميل بنجاح.");
+      await loadOfficers();
+     }catch(error){
+      alert(error.message);
+      deleteButton.disabled=false;
+     }
+    });
+
+    actions.appendChild(statusButton);
+    actions.appendChild(deleteButton);
+   }else{
+    actions.textContent="—";
+   }
+
+   tr.appendChild(actions);
+   tbody.appendChild(tr);
+  });
+
+ }catch(error){
+  tbody.innerHTML='<tr><td colspan="6">تعذر تحميل البيانات.</td></tr>';
+  message.style.color="#ff8585";
+  message.textContent=error.message;
+ }
+}
+
 function openSection(key){
  const sectionView=document.getElementById("sectionView");
-
- [
-  "officersSection",
-  "otherSection",
-  "auditSection",
-  "relationshipsSection",
-  "casesSection"
- ].forEach(id=>document.getElementById(id).classList.add("hidden"));
+ const officersSection=document.getElementById("officersSection");
+ const otherSection=document.getElementById("otherSection");
 
  sectionView.classList.remove("hidden");
 
  if(key==="officers"){
-  document.getElementById("officersSection").classList.remove("hidden");
-  const admin=isAdmin();
+  otherSection.classList.add("hidden");
+  officersSection.classList.remove("hidden");
 
+  const admin=isAdmin();
   document.getElementById("adminOnly").classList.toggle("hidden",!admin);
   document.getElementById("officerAccessMessage").classList.toggle("hidden",admin);
-
-  document.getElementById("officerAccessMessage").textContent=
-   admin?"":"عرض قائمة الضباط متاح، لكن إنشاء الحسابات وإدارتها يتطلب صلاحية المدير.";
+  document.getElementById("officerAccessMessage").textContent=admin?"":"عرض قائمة الضباط متاح، لكن إنشاء الحسابات وإدارة الحسابات يتطلب صلاحية المدير.";
 
   loadOfficers();
-
- }else if(key==="audit"){
-  if(!isAdmin()){
-   alert("ليست لديك صلاحية عرض سجل العمليات.");
-   sectionView.classList.add("hidden");
-   return;
-  }
-
-  document.getElementById("auditSection").classList.remove("hidden");
-  loadAuditLogs();
-
- }else if(key==="relationships"){
-  document.getElementById("relationshipsSection").classList.remove("hidden");
-  loadRelationships();
-
- }else if(key==="cases"){
-  document.getElementById("casesSection").classList.remove("hidden");
-  loadCaseOfficers();
-  loadCases();
-
  }else{
-  document.getElementById("otherSection").classList.remove("hidden");
-  const info=sectionInfo[key];
+  officersSection.classList.add("hidden");
+  otherSection.classList.remove("hidden");
 
+  const info=sectionInfo[key];
   if(info){
    document.getElementById("sectionTitle").textContent=info[0];
    document.getElementById("sectionDescription").textContent=info[1];
@@ -56,17 +437,15 @@ function openSection(key){
  sectionView.scrollIntoView({behavior:"smooth"});
 }
 
-document.querySelectorAll(".menu-card").forEach(card=>card.addEventListener("click",()=>openSection(card.dataset.section)));
-document.getElementById("backButton").addEventListener("click",()=>document.getElementById("sectionView").classList.add("hidden"));
+document.querySelectorAll(".menu-card").forEach(card=>{
+ card.addEventListener("click",()=>openSection(card.dataset.section));
+});
+
+document.getElementById("backButton").addEventListener("click",()=>{
+ document.getElementById("sectionView").classList.add("hidden");
+});
+
 document.getElementById("refreshOfficers").addEventListener("click",loadOfficers);
-document.getElementById("refreshAudit").addEventListener("click",loadAuditLogs);
-document.getElementById("refreshRelationships").addEventListener("click",loadRelationships);
-document.getElementById("refreshAnalysis").addEventListener("click",renderNetworkAnalysis);
-document.getElementById("auditSearch").addEventListener("input",renderAuditLogs);
-document.getElementById("auditFilter").addEventListener("change",renderAuditLogs);
-document.getElementById("relationshipSearch").addEventListener("input",renderRelationships);
-document.getElementById("relationshipFilter").addEventListener("change",renderRelationships);
-document.getElementById("relationshipForm").addEventListener("submit",addRelationship);
 
 document.getElementById("officerForm").addEventListener("submit",async event=>{
  event.preventDefault();
@@ -99,391 +478,23 @@ document.getElementById("officerForm").addEventListener("submit",async event=>{
   });
 
   const data=await response.json();
-
   if(!response.ok)throw new Error(data.error||"تعذر إنشاء الحساب");
 
   message.style.color="#83d6a8";
   message.textContent="تم إنشاء حساب الضابط بنجاح.";
-
   event.target.reset();
   await loadOfficers();
 
  }catch(error){
   message.style.color="#ff8585";
   message.textContent=error.message;
-
  }finally{
   button.disabled=false;
   button.textContent="إنشاء حساب الضابط";
  }
 });
 
-// ===============================
-// CASE MANAGEMENT
-// ===============================
-
-let casesData = [];
-let officersForCases = [];
-
-function caseStatusLabel(status) {
-  const labels = {
-    "Open": "مفتوحة",
-    "Under Investigation": "قيد التحقيق",
-    "Closed": "مغلقة",
-    "Suspended": "معلقة"
-  };
-
-  return labels[status] || status || "غير محدد";
-}
-
-function casePriorityLabel(priority) {
-  const labels = {
-    "Low": "منخفضة",
-    "Normal": "عادية",
-    "High": "عالية",
-    "Critical": "حرجة"
-  };
-
-  return labels[priority] || priority || "عادية";
-}
-
-async function loadCaseOfficers() {
-  const select = document.getElementById("caseAssignedTo");
-
-  try {
-    const response = await fetch("/api/officers", {
-      credentials: "same-origin"
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "تعذر تحميل الضباط");
-    }
-
-    officersForCases = data.officers || [];
-
-    select.innerHTML = '<option value="">بدون ضابط مكلّف</option>';
-
-    officersForCases
-      .filter(officer => officer.active)
-      .forEach(officer => {
-        const option = document.createElement("option");
-        option.value = officer.id;
-        option.textContent =
-          officer.full_name + " — " + (officer.rank || "Officer");
-
-        select.appendChild(option);
-      });
-
-  } catch (error) {
-    console.error("Case officers:", error);
-  }
-}
-
-async function loadCases() {
-  const tbody = document.getElementById("casesTable");
-  const message = document.getElementById("caseListMessage");
-
-  tbody.innerHTML =
-    '<tr><td colspan="8">جارٍ تحميل القضايا...</td></tr>';
-
-  message.textContent = "";
-
-  try {
-    const response = await fetch("/api/cases", {
-      credentials: "same-origin"
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "تعذر تحميل القضايا");
-    }
-
-    casesData = Array.isArray(data) ? data : data.cases || [];
-
-    renderCases();
-
-    document.getElementById("totalCases").textContent =
-      casesData.length;
-
-    document.getElementById("openCases").textContent =
-      casesData.filter(item =>
-        item.status === "Open" ||
-        item.status === "Under Investigation"
-      ).length;
-
-    document.getElementById("closedCases").textContent =
-      casesData.filter(item => item.status === "Closed").length;
-
-    message.style.color = "#83d6a8";
-    message.textContent = "تم تحميل " + casesData.length + " قضية.";
-
-  } catch (error) {
-    tbody.innerHTML =
-      '<tr><td colspan="8">تعذر تحميل القضايا.</td></tr>';
-
-    message.style.color = "#ff8585";
-    message.textContent = error.message;
-  }
-}
-
-function renderCases() {
-  const tbody = document.getElementById("casesTable");
-  const search = document.getElementById("caseSearch")
-    .value.trim().toLowerCase();
-
-  const filtered = casesData.filter(item => {
-    const searchable = [
-      item.case_number,
-      item.title,
-      item.status,
-      item.priority,
-      item.assigned_officer_name,
-      item.creator_name
-    ].join(" ").toLowerCase();
-
-    return searchable.includes(search);
-  });
-
-  tbody.innerHTML = "";
-
-  if (!filtered.length) {
-    tbody.innerHTML =
-      '<tr><td colspan="8">لا توجد قضايا مطابقة.</td></tr>';
-    return;
-  }
-
-  filtered.forEach(item => {
-    const tr = document.createElement("tr");
-
-    const values = [
-      item.case_number,
-      item.title,
-      caseStatusLabel(item.status),
-      casePriorityLabel(item.priority),
-      item.assigned_officer_name || "غير معيّن",
-      item.creator_name || "غير معروف",
-      formatAuditDate(item.created_at)
-    ];
-
-    values.forEach((value, index) => {
-      const td = document.createElement("td");
-      td.textContent = value || "-";
-
-      if (index === 0) {
-        td.style.color = "#d7b46a";
-        td.style.fontWeight = "bold";
-      }
-
-      tr.appendChild(td);
-    });
-
-    const actions = document.createElement("td");
-
-    const editButton = document.createElement("button");
-    editButton.className = "small-button";
-    editButton.type = "button";
-    editButton.textContent = "تعديل";
-
-    editButton.addEventListener("click", () => {
-      editCase(item.id);
-    });
-
-    const deleteButton = document.createElement("button");
-    deleteButton.className = "delete-button";
-    deleteButton.type = "button";
-    deleteButton.textContent = "حذف";
-
-    deleteButton.addEventListener("click", () => {
-      deleteCase(item.id);
-    });
-
-    actions.append(editButton, deleteButton);
-    tr.appendChild(actions);
-
-    tbody.appendChild(tr);
-  });
-}
-
-async function saveCase(event) {
-  event.preventDefault();
-
-  const button = document.getElementById("saveCaseButton");
-  const message = document.getElementById("caseMessage");
-
-  const id = document.getElementById("caseId").value;
-
-  const payload = {
-    title: document.getElementById("caseTitle").value.trim(),
-    description: document.getElementById("caseDescription").value.trim(),
-    status: document.getElementById("caseStatus").value,
-    priority: document.getElementById("casePriority").value,
-    assigned_to: document.getElementById("caseAssignedTo").value || null
-  };
-
-  if (!payload.title) {
-    message.style.color = "#ff8585";
-    message.textContent = "عنوان القضية مطلوب.";
-    return;
-  }
-
-  button.disabled = true;
-  button.textContent = "جارٍ الحفظ...";
-  message.textContent = "";
-
-  try {
-    const response = await fetch(
-      id ? `/api/cases/${encodeURIComponent(id)}` : "/api/cases",
-      {
-        method: id ? "PATCH" : "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "تعذر حفظ القضية");
-    }
-
-    document.getElementById("caseForm").reset();
-    document.getElementById("caseId").value = "";
-
-    document.getElementById("caseFormTitle").textContent =
-      "إنشاء قضية جديدة";
-
-    document.getElementById("saveCaseButton").textContent =
-      "إنشاء القضية";
-
-    document.getElementById("cancelCaseEdit").classList.add("hidden");
-
-    message.style.color = "#83d6a8";
-    message.textContent = id
-      ? "تم تحديث القضية بنجاح."
-      : "تم إنشاء القضية بنجاح. رقم القضية: " +
-        (data.case?.case_number || "");
-
-    await loadCases();
-
-  } catch (error) {
-    message.style.color = "#ff8585";
-    message.textContent = error.message;
-
-  } finally {
-    button.disabled = false;
-
-    if (!document.getElementById("caseId").value) {
-      button.textContent = "إنشاء القضية";
-    } else {
-      button.textContent = "حفظ التعديلات";
-    }
-  }
-}
-
-function editCase(id) {
-  const item = casesData.find(c => String(c.id) === String(id));
-
-  if (!item) return;
-
-  document.getElementById("caseId").value = item.id;
-  document.getElementById("caseTitle").value = item.title || "";
-  document.getElementById("caseDescription").value =
-    item.description || "";
-
-  document.getElementById("caseStatus").value =
-    item.status || "Open";
-
-  document.getElementById("casePriority").value =
-    item.priority || "Normal";
-
-  document.getElementById("caseAssignedTo").value =
-    item.assigned_to || "";
-
-  document.getElementById("caseFormTitle").textContent =
-    "تعديل القضية: " + item.case_number;
-
-  document.getElementById("saveCaseButton").textContent =
-    "حفظ التعديلات";
-
-  document.getElementById("cancelCaseEdit").classList.remove("hidden");
-
-  document.getElementById("caseMessage").textContent = "";
-
-  document.getElementById("caseForm").scrollIntoView({
-    behavior: "smooth"
-  });
-}
-
-async function deleteCase(id) {
-  const item = casesData.find(c => String(c.id) === String(id));
-
-  if (!item) return;
-
-  if (!confirm(
-    "هل أنت متأكد من حذف القضية " +
-    item.case_number +
-    "؟"
-  )) return;
-
-  const message = document.getElementById("caseListMessage");
-
-  try {
-    const response = await fetch(
-      `/api/cases/${encodeURIComponent(id)}`,
-      {
-        method: "DELETE",
-        credentials: "same-origin"
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "تعذر حذف القضية");
-    }
-
-    message.style.color = "#83d6a8";
-    message.textContent = "تم حذف القضية بنجاح.";
-
-    await loadCases();
-
-  } catch (error) {
-    message.style.color = "#ff8585";
-    message.textContent = error.message;
-  }
-}
-
-function cancelCaseEdit() {
-  document.getElementById("caseForm").reset();
-  document.getElementById("caseId").value = "";
-
-  document.getElementById("caseFormTitle").textContent =
-    "إنشاء قضية جديدة";
-
-  document.getElementById("saveCaseButton").textContent =
-    "إنشاء القضية";
-
-  document.getElementById("cancelCaseEdit").classList.add("hidden");
-
-  document.getElementById("caseMessage").textContent = "";
-}
-
-document.getElementById("caseForm")
-  .addEventListener("submit", saveCase);
-
-document.getElementById("refreshCases")
-  .addEventListener("click", loadCases);
-
-document.getElementById("caseSearch")
-  .addEventListener("input", renderCases);
-
-document.getElementById("cancelCaseEdit")
-  .addEventListener("click", cancelCaseEdit);
-
 checkSession();
+</script>
+</body>
+</html>
