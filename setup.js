@@ -30,17 +30,28 @@ async function setup() {
 
     console.log("Database tables created successfully.");
 
+    // التأكد من وجود جدول سجل تاريخ المطلوبين
+    await pool.query(`
+      SELECT id
+      FROM wanted_history
+      LIMIT 1
+    `);
+
+    console.log("Wanted history table verified successfully.");
+
     const username = process.env.BOOTSTRAP_ADMIN_USERNAME;
     const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
     const fullName = process.env.BOOTSTRAP_ADMIN_NAME;
 
     if (!username && !password && !fullName) {
-      console.log("Admin account setup skipped. Add admin environment variables later.");
+      console.log("Admin account setup skipped.");
       return;
     }
 
     if (!username || !password || !fullName) {
-      throw new Error("All three BOOTSTRAP_ADMIN variables are required.");
+      throw new Error(
+        "All three BOOTSTRAP_ADMIN variables are required."
+      );
     }
 
     const existing = await pool.query(
@@ -49,7 +60,9 @@ async function setup() {
     );
 
     if (existing.rows.length > 0) {
-      console.log("Admin username already exists. Existing account was not changed.");
+      console.log(
+        "Admin username already exists. Existing account was not changed."
+      );
       return;
     }
 
@@ -65,8 +78,9 @@ async function setup() {
     console.log("First administrator account created successfully.");
 
   } catch (error) {
-    console.error("Setup failed:", error.message);
+    console.error("Setup failed:", error);
     process.exitCode = 1;
+
   } finally {
     await pool.end();
   }
