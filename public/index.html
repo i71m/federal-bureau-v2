@@ -51,8 +51,9 @@ table{width:100%;border-collapse:collapse;min-width:700px}
 th,td{padding:13px;text-align:right;border-bottom:1px solid #34445b;font-size:13px}
 th{color:#d7b46a;background:#0b1728}
 .small-button{padding:7px 12px;border:0;border-radius:5px;background:#315b49;color:white}
-.delete-button{padding:7px 12px;border:0;border-radius:5px;background:#792f36;color:white;margin-right:5px}
-.edit-button{padding:7px 12px;border:0;border-radius:5px;background:#8a6932;color:white;margin-right:5px}
+.delete-button{padding:7px 12px;border:0;border-radius:5px;background:#792f36;color:white;margin:3px}
+.edit-button{padding:7px 12px;border:0;border-radius:5px;background:#8a6932;color:white;margin:3px}
+.view-button{padding:7px 12px;border:0;border-radius:5px;background:#315b70;color:white;margin:3px}
 .active-label{color:#83d6a8}
 .disabled-label{color:#ff8585}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:15px 0}
@@ -75,8 +76,33 @@ th{color:#d7b46a;background:#0b1728}
 .case-closed{color:#aab5c8}
 .case-urgent{color:#ff8585}
 footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
+
+/* WANTED PROFILE */
+.profile-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.profile-title{color:#d7b46a;font-size:24px;margin:5px 0}
+.profile-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:18px 0}
+.profile-info-item{background:#0b1728;border:1px solid #34445b;border-radius:8px;padding:14px}
+.profile-info-item small{display:block;color:#9aa9bd;margin-bottom:8px}
+.profile-info-item strong{color:#e9edf5;overflow-wrap:anywhere}
+.profile-description{background:#0b1728;padding:15px;border-radius:8px;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere}
+.profile-actions{display:flex;gap:8px;flex-wrap:wrap}
+.image-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:13px;margin-top:15px}
+.image-card{background:#0b1728;border:1px solid #34445b;border-radius:8px;overflow:hidden}
+.image-card img{width:100%;height:155px;object-fit:cover;display:block;cursor:zoom-in}
+.image-card-info{padding:9px;font-size:11px;color:#aab5c8;overflow-wrap:anywhere}
+.image-card-info button{margin-top:7px}
+.upload-box{background:#0b1728;border:1px dashed #647c9c;padding:18px;border-radius:8px;margin-top:15px}
+.upload-box input{background:transparent;border:0}
+.history-item{border-right:3px solid #b18a42;background:#0b1728;padding:14px;margin:12px 0;border-radius:7px}
+.history-item h4{color:#d7b46a;margin:0 0 8px}
+.history-meta{font-size:12px;color:#9eacc0;line-height:1.9}
+.history-details{font-size:13px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:8px}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.lightbox img{max-width:95vw;max-height:88vh;object-fit:contain}
+.lightbox button{position:absolute;top:20px;left:20px;background:#792f36;color:white;border:0;padding:12px 18px;border-radius:6px}
+.profile-back{margin-bottom:15px}
 @media(max-width:850px){.network-layout{grid-template-columns:1fr}.network-box{min-height:400px}#network{height:400px}}
-@media(max-width:600px){header{padding:15px}.brand{font-size:18px}.container{padding:14px}.hero h1{font-size:25px}.panel{padding:14px}}
+@media(max-width:600px){header{padding:15px}.brand{font-size:18px}.container{padding:14px}.hero h1{font-size:25px}.panel{padding:14px}.profile-title{font-size:20px}}
 </style>
 </head>
 <body>
@@ -179,83 +205,114 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
     </div>
    </div>
 
-   <!-- WANTED PERSONS -->
    <div id="wantedSection" class="hidden">
-    <h2>مركز إدارة المطلوبين</h2>
-    <p>تسجيل المطلوبين وإدارة ملفات البحث ومستويات الخطورة.</p>
+    <div id="wantedListArea">
+     <h2>مركز إدارة المطلوبين</h2>
+     <p>تسجيل المطلوبين وإدارة ملفات البحث ومستويات الخطورة.</p>
 
-    <div class="grid">
-     <div class="network-stat">إجمالي المطلوبين<strong id="wantedTotal">0</strong></div>
-     <div class="network-stat">المطلوبون النشطون<strong id="wantedActive">0</strong></div>
-     <div class="network-stat">الموقوفون<strong id="wantedArrested">0</strong></div>
+     <div class="grid">
+      <div class="network-stat">إجمالي المطلوبين<strong id="wantedTotal">0</strong></div>
+      <div class="network-stat">المطلوبون النشطون<strong id="wantedActive">0</strong></div>
+      <div class="network-stat">الموقوفون<strong id="wantedArrested">0</strong></div>
+     </div>
+
+     <div class="panel" id="wantedFormPanel">
+      <h3 id="wantedFormTitle">تسجيل مطلوب جديد</h3>
+      <form id="wantedForm">
+       <input type="hidden" id="editingWantedId">
+       <div class="form-grid">
+        <input id="wantedFullName" placeholder="الاسم الكامل" maxlength="200" required>
+        <input id="wantedAlias" placeholder="الاسم المستعار" maxlength="200">
+        <select id="wantedThreat" required>
+         <option value="Low">خطورة منخفضة</option>
+         <option value="Medium" selected>خطورة متوسطة</option>
+         <option value="High">خطورة مرتفعة</option>
+         <option value="Critical">خطورة حرجة</option>
+        </select>
+        <select id="wantedStatus" required>
+         <option value="Active">مطلوب</option>
+         <option value="Arrested">مقبوض عليه</option>
+         <option value="Cleared">تمت تبرئته</option>
+        </select>
+       </div>
+       <textarea id="wantedCharges" placeholder="التهم المنسوبة إليه"></textarea>
+       <textarea id="wantedDescription" placeholder="الوصف والتفاصيل"></textarea>
+       <button class="primary full" id="saveWantedButton" type="submit">تسجيل المطلوب</button>
+       <button class="secondary full hidden" id="cancelWantedEdit" type="button">إلغاء التعديل</button>
+      </form>
+      <div id="wantedMessage" class="message"></div>
+     </div>
+
+     <div class="toolbar" id="wantedToolbar">
+      <input id="wantedSearch" placeholder="البحث بالاسم أو الاسم المستعار أو التهم...">
+      <button class="secondary" id="refreshWanted">تحديث القائمة</button>
+     </div>
+     <div id="wantedListMessage" class="message"></div>
+     <div class="table-wrap" id="wantedTableWrap">
+      <table>
+       <thead><tr><th>الاسم</th><th>الاسم المستعار</th><th>مستوى الخطورة</th><th>الحالة</th><th>التهم</th><th>الإجراءات</th></tr></thead>
+       <tbody id="wantedTable"><tr><td colspan="6">لم يتم تحميل البيانات بعد.</td></tr></tbody>
+      </table>
+     </div>
     </div>
 
-    <div class="panel">
-     <h3 id="wantedFormTitle">تسجيل مطلوب جديد</h3>
-     <form id="wantedForm">
-      <input type="hidden" id="editingWantedId">
-
-      <div class="form-grid">
-       <input id="wantedFullName" placeholder="الاسم الكامل" maxlength="200" required>
-       <input id="wantedAlias" placeholder="الاسم المستعار" maxlength="200">
-       <select id="wantedThreat" required>
-        <option value="Low">خطورة منخفضة</option>
-        <option value="Medium" selected>خطورة متوسطة</option>
-        <option value="High">خطورة مرتفعة</option>
-        <option value="Critical">خطورة حرجة</option>
-       </select>
-       <select id="wantedStatus" required>
-        <option value="Active">مطلوب</option>
-        <option value="Arrested">مقبوض عليه</option>
-        <option value="Cleared">تمت تبرئته</option>
-       </select>
+    <div id="wantedProfileView" class="hidden">
+     <button class="secondary profile-back" id="backToWantedList">← العودة إلى قائمة المطلوبين</button>
+     <div class="panel">
+      <div class="profile-header">
+       <div>
+        <div class="tag">WANTED PERSON FILE</div>
+        <h2 class="profile-title" id="profileName">ملف المطلوب</h2>
+        <div id="profileAlias" style="color:#aab5c8"></div>
+       </div>
+       <div class="profile-actions">
+        <button class="edit-button" id="profileEditButton">تعديل البيانات</button>
+        <button class="secondary" id="profileRefreshButton">تحديث الملف</button>
+       </div>
       </div>
+      <div class="profile-info">
+       <div class="profile-info-item"><small>مستوى الخطورة</small><strong id="profileThreat">—</strong></div>
+       <div class="profile-info-item"><small>الحالة</small><strong id="profileStatus">—</strong></div>
+       <div class="profile-info-item"><small>رقم الملف</small><strong id="profileId">—</strong></div>
+       <div class="profile-info-item"><small>تاريخ التسجيل</small><strong id="profileCreated">—</strong></div>
+      </div>
+      <h3>التهم المنسوبة</h3>
+      <div class="profile-description" id="profileCharges">لا توجد بيانات.</div>
+      <h3>الوصف والتفاصيل</h3>
+      <div class="profile-description" id="profileDescription">لا توجد بيانات.</div>
+     </div>
 
-      <textarea id="wantedCharges" placeholder="التهم المنسوبة إليه"></textarea>
-      <textarea id="wantedDescription" placeholder="الوصف والتفاصيل"></textarea>
+     <div class="panel">
+      <h3>الصور والمرفقات</h3>
+      <p>يمكن إضافة صور إلى ملف المطلوب. الحد الأقصى للصورة الواحدة 5 ميجابايت، والصيغ المدعومة JPG وPNG وWEBP.</p>
+      <div class="upload-box">
+       <input type="file" id="wantedImageInput" accept="image/jpeg,image/png,image/webp" multiple>
+       <button class="primary" id="uploadWantedImages">رفع الصور المحددة</button>
+       <div id="imageUploadMessage" class="message"></div>
+      </div>
+      <div id="wantedImagesGrid" class="image-grid">
+       <div class="empty">لا توجد صور محملة.</div>
+      </div>
+     </div>
 
-      <button class="primary full" id="saveWantedButton" type="submit">تسجيل المطلوب</button>
-      <button class="secondary full hidden" id="cancelWantedEdit" type="button">إلغاء التعديل</button>
-     </form>
-     <div id="wantedMessage" class="message"></div>
-    </div>
-
-    <div class="toolbar">
-     <input id="wantedSearch" placeholder="البحث بالاسم أو الاسم المستعار أو التهم...">
-     <button class="secondary" id="refreshWanted">تحديث القائمة</button>
-    </div>
-
-    <div id="wantedListMessage" class="message"></div>
-
-    <div class="table-wrap">
-     <table>
-      <thead>
-       <tr>
-        <th>الاسم</th>
-        <th>الاسم المستعار</th>
-        <th>مستوى الخطورة</th>
-        <th>الحالة</th>
-        <th>التهم</th>
-        <th>الإجراءات</th>
-       </tr>
-      </thead>
-      <tbody id="wantedTable">
-       <tr><td colspan="6">لم يتم تحميل البيانات بعد.</td></tr>
-      </tbody>
-     </table>
+     <div class="panel">
+      <h3>السجل التاريخي للملف</h3>
+      <p>سجل يوثق عمليات إنشاء الملف والتعديلات وتغيير الحالة والإجراءات المسجلة عليه.</p>
+      <div id="wantedHistoryList">
+       <div class="empty">جارٍ تحميل السجل التاريخي...</div>
+      </div>
+     </div>
     </div>
    </div>
 
    <div id="casesSection" class="hidden">
     <h2>مركز إدارة القضايا</h2>
     <p>إنشاء ملفات القضايا ومتابعة حالتها وأولويتها والضباط المكلّفين بها.</p>
-
     <div class="grid">
      <div class="network-stat">إجمالي القضايا<strong id="casesTotal">0</strong></div>
      <div class="network-stat">القضايا المفتوحة<strong id="casesOpen">0</strong></div>
      <div class="network-stat">القضايا المغلقة<strong id="casesClosed">0</strong></div>
     </div>
-
     <div class="panel">
      <h3 id="caseFormTitle">إنشاء قضية جديدة</h3>
      <form id="caseForm">
@@ -263,16 +320,12 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
       <div class="form-grid">
        <input id="caseTitle" placeholder="عنوان القضية" maxlength="200" required>
        <select id="caseStatus" required>
-        <option value="Open">مفتوحة</option>
-        <option value="In Progress">قيد التحقيق</option>
-        <option value="Under Review">قيد المراجعة</option>
-        <option value="Closed">مغلقة</option>
+        <option value="Open">مفتوحة</option><option value="In Progress">قيد التحقيق</option>
+        <option value="Under Review">قيد المراجعة</option><option value="Closed">مغلقة</option>
        </select>
        <select id="casePriority" required>
-        <option value="Normal">عادية</option>
-        <option value="High">مرتفعة</option>
-        <option value="Critical">حرجة</option>
-        <option value="Low">منخفضة</option>
+        <option value="Normal">عادية</option><option value="High">مرتفعة</option>
+        <option value="Critical">حرجة</option><option value="Low">منخفضة</option>
        </select>
        <input id="caseAssignedTo" type="number" min="1" placeholder="رقم الضابط المكلّف (اختياري)">
       </div>
@@ -282,31 +335,20 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
      </form>
      <div id="caseMessage" class="message"></div>
     </div>
-
     <div class="toolbar">
      <input id="caseSearch" placeholder="ابحث برقم القضية أو العنوان أو اسم الضابط...">
      <select id="caseStatusFilter" style="max-width:190px">
-      <option value="">جميع الحالات</option>
-      <option value="Open">مفتوحة</option>
-      <option value="In Progress">قيد التحقيق</option>
-      <option value="Under Review">قيد المراجعة</option>
+      <option value="">جميع الحالات</option><option value="Open">مفتوحة</option>
+      <option value="In Progress">قيد التحقيق</option><option value="Under Review">قيد المراجعة</option>
       <option value="Closed">مغلقة</option>
      </select>
      <button class="secondary" id="refreshCases">تحديث القضايا</button>
     </div>
-
     <div id="casesListMessage" class="message"></div>
     <div class="table-wrap">
      <table>
-      <thead>
-       <tr>
-        <th>رقم القضية</th><th>العنوان</th><th>الحالة</th><th>الأولوية</th>
-        <th>الضابط المكلّف</th><th>منشئ القضية</th><th>تاريخ الإنشاء</th><th>الإجراءات</th>
-       </tr>
-      </thead>
-      <tbody id="casesTable">
-       <tr><td colspan="8">جارٍ تحميل القضايا...</td></tr>
-      </tbody>
+      <thead><tr><th>رقم القضية</th><th>العنوان</th><th>الحالة</th><th>الأولوية</th><th>الضابط المكلّف</th><th>منشئ القضية</th><th>تاريخ الإنشاء</th><th>الإجراءات</th></tr></thead>
+      <tbody id="casesTable"><tr><td colspan="8">جارٍ تحميل القضايا...</td></tr></tbody>
      </table>
     </div>
    </div>
@@ -326,11 +368,11 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
        <input id="personOne" placeholder="اسم الشخص الأول" required>
        <input id="personTwo" placeholder="اسم الشخص الثاني" required>
        <select id="relationshipType" required>
-        <option value="">اختر نوع العلاقة</option>
-        <option value="شراكة">شراكة</option><option value="قرابة">قرابة</option>
-        <option value="صداقة">صداقة</option><option value="عداوة">عداوة</option>
-        <option value="عمل">عمل</option><option value="اتصال">اتصال</option>
-        <option value="مشتبه به">مشتبه به</option><option value="أخرى">أخرى</option>
+        <option value="">اختر نوع العلاقة</option><option value="شراكة">شراكة</option>
+        <option value="قرابة">قرابة</option><option value="صداقة">صداقة</option>
+        <option value="عداوة">عداوة</option><option value="عمل">عمل</option>
+        <option value="اتصال">اتصال</option><option value="مشتبه به">مشتبه به</option>
+        <option value="أخرى">أخرى</option>
        </select>
       </div>
       <textarea id="relationshipNotes" placeholder="ملاحظات عن العلاقة (اختياري)"></textarea>
@@ -375,6 +417,11 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
  </div>
 </main>
 
+<div id="imageLightbox" class="lightbox hidden">
+ <button id="closeLightbox">إغلاق ✕</button>
+ <img id="lightboxImage" alt="صورة مكبرة">
+</div>
+
 <footer>FEDERAL BUREAU © 2026 — ALL RIGHTS RESERVED</footer>
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 
@@ -393,6 +440,8 @@ let networkEdges=null;
 let selectedPerson=null;
 let casesData=[];
 let wantedData=[];
+let activeWantedProfileId=null;
+let activeWantedImages=[];
 
 const sectionInfo={
  reports:["التقارير الأمنية","هذا القسم يحتاج إلى إنشاء مسارات API وربطها بقاعدة البيانات."],
@@ -404,13 +453,11 @@ const sectionInfo={
 function isAdmin(){
  return currentOfficer&&String(currentOfficer.role||"").toLowerCase()==="admin";
 }
-
 function showLogin(){
  currentOfficer=null;
  dashboardPage.classList.add("hidden");
  loginPage.classList.remove("hidden");
 }
-
 function showDashboard(officer){
  currentOfficer=officer;
  loginPage.classList.add("hidden");
@@ -418,7 +465,6 @@ function showDashboard(officer){
  document.getElementById("officerName").textContent=officer.full_name||officer.username;
  document.getElementById("officerRank").textContent="الرتبة: "+(officer.rank||"غير محددة");
 }
-
 async function checkSession(){
  try{
   const response=await fetch("/api/auth/me",{credentials:"same-origin"});
@@ -428,7 +474,6 @@ async function checkSession(){
   else showLogin();
  }catch(error){showLogin();}
 }
-
 loginForm.addEventListener("submit",async event=>{
  event.preventDefault();
  loginButton.disabled=true;
@@ -455,7 +500,6 @@ loginForm.addEventListener("submit",async event=>{
   loginButton.textContent="دخول النظام";
  }
 });
-
 document.getElementById("logoutButton").addEventListener("click",async()=>{
  try{
   const response=await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});
@@ -465,7 +509,6 @@ document.getElementById("logoutButton").addEventListener("click",async()=>{
 });
 
 /* OFFICERS */
-
 async function loadOfficers(){
  const tbody=document.getElementById("officersTable");
  const message=document.getElementById("listMessage");
@@ -481,10 +524,7 @@ async function loadOfficers(){
   if(!response.ok)throw new Error(data.error||"تعذر تحميل قائمة الضباط");
   const officers=data.officers||[];
   document.getElementById("officerCount").textContent=officers.length;
-  if(!officers.length){
-   tbody.innerHTML='<tr><td colspan="6">لا يوجد ضباط مسجلون.</td></tr>';
-   return;
-  }
+  if(!officers.length){tbody.innerHTML='<tr><td colspan="6">لا يوجد ضباط مسجلون.</td></tr>';return;}
   tbody.innerHTML="";
   officers.forEach(officer=>{
    const tr=document.createElement("tr");
@@ -534,14 +574,12 @@ async function loadOfficers(){
   message.textContent=error.message;
  }
 }
-
 document.getElementById("officerForm").addEventListener("submit",async event=>{
  event.preventDefault();
  if(!isAdmin())return;
  const button=document.getElementById("createOfficerButton");
  const message=document.getElementById("createMessage");
- button.disabled=true;
- message.textContent="";
+ button.disabled=true;message.textContent="";
  try{
   const response=await fetch("/api/officers",{
    method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
@@ -554,137 +592,79 @@ document.getElementById("officerForm").addEventListener("submit",async event=>{
   });
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر إنشاء الحساب");
-  message.style.color="#83d6a8";
-  message.textContent="تم إنشاء حساب الضابط بنجاح.";
-  event.target.reset();
-  loadOfficers();
+  message.style.color="#83d6a8";message.textContent="تم إنشاء حساب الضابط بنجاح.";
+  event.target.reset();loadOfficers();
  }catch(error){
-  message.style.color="#ff8585";
-  message.textContent=error.message;
+  message.style.color="#ff8585";message.textContent=error.message;
  }finally{button.disabled=false;}
 });
 
 /* WANTED PERSONS */
-
 function wantedStatusArabic(status){
- const labels={
-  Active:"مطلوب",
-  Arrested:"مقبوض عليه",
-  Cleared:"تمت تبرئته"
- };
- return labels[status]||status||"غير محددة";
+ return ({Active:"مطلوب",Arrested:"مقبوض عليه",Cleared:"تمت تبرئته"})[status]||status||"غير محددة";
 }
-
 function wantedThreatArabic(level){
- const labels={
-  Low:"منخفضة",
-  Medium:"متوسطة",
-  High:"مرتفعة",
-  Critical:"حرجة"
- };
- return labels[level]||level||"غير محددة";
+ return ({Low:"منخفضة",Medium:"متوسطة",High:"مرتفعة",Critical:"حرجة"})[level]||level||"غير محددة";
 }
-
+function formatDate(value){
+ if(!value)return "—";
+ const date=new Date(value);
+ if(Number.isNaN(date.getTime()))return "—";
+ return date.toLocaleString("ar-SA");
+}
 async function loadWanted(){
  const tbody=document.getElementById("wantedTable");
  const message=document.getElementById("wantedListMessage");
-
  tbody.innerHTML='<tr><td colspan="6">جارٍ تحميل قائمة المطلوبين...</td></tr>';
  message.textContent="";
-
  try{
   const response=await fetch("/api/wanted",{credentials:"same-origin"});
   const data=await response.json();
-
   if(!response.ok)throw new Error(data.error||"تعذر تحميل قائمة المطلوبين");
-  if(!data.success||!Array.isArray(data.wanted)){
-   throw new Error("استجابة قائمة المطلوبين غير متوقعة");
-  }
-
+  if(!data.success||!Array.isArray(data.wanted))throw new Error("استجابة قائمة المطلوبين غير متوقعة");
   wantedData=data.wanted;
-
   document.getElementById("wantedCount").textContent=wantedData.length;
   document.getElementById("wantedTotal").textContent=wantedData.length;
-  document.getElementById("wantedActive").textContent=
-   wantedData.filter(person=>person.status==="Active").length;
-  document.getElementById("wantedArrested").textContent=
-   wantedData.filter(person=>person.status==="Arrested").length;
-
+  document.getElementById("wantedActive").textContent=wantedData.filter(p=>p.status==="Active").length;
+  document.getElementById("wantedArrested").textContent=wantedData.filter(p=>p.status==="Arrested").length;
   renderWantedTable();
-
  }catch(error){
   tbody.innerHTML='<tr><td colspan="6">تعذر تحميل قائمة المطلوبين.</td></tr>';
-  message.style.color="#ff8585";
-  message.textContent=error.message;
+  message.style.color="#ff8585";message.textContent=error.message;
  }
 }
-
 function renderWantedTable(){
  const tbody=document.getElementById("wantedTable");
  const search=document.getElementById("wantedSearch").value.trim().toLowerCase();
-
- const filtered=wantedData.filter(person=>{
-  const searchable=[
-   person.full_name,
-   person.alias,
-   person.charges,
-   person.description
-  ].join(" ").toLowerCase();
-
-  return searchable.includes(search);
- });
-
+ const filtered=wantedData.filter(person=>
+  [person.full_name,person.alias,person.charges,person.description].join(" ").toLowerCase().includes(search)
+ );
  tbody.innerHTML="";
-
- if(!filtered.length){
-  tbody.innerHTML='<tr><td colspan="6">لا توجد نتائج مطابقة للبحث.</td></tr>';
-  return;
- }
-
+ if(!filtered.length){tbody.innerHTML='<tr><td colspan="6">لا توجد نتائج مطابقة للبحث.</td></tr>';return;}
  filtered.forEach(person=>{
   const tr=document.createElement("tr");
-
-  const nameCell=document.createElement("td");
-  nameCell.textContent=person.full_name||"—";
-  tr.appendChild(nameCell);
-
-  const aliasCell=document.createElement("td");
-  aliasCell.textContent=person.alias||"—";
-  tr.appendChild(aliasCell);
-
-  const threatCell=document.createElement("td");
-  threatCell.textContent=wantedThreatArabic(person.threat_level);
-  if(person.threat_level==="Critical"||person.threat_level==="High"){
-   threatCell.className="case-urgent";
-  }
-  tr.appendChild(threatCell);
-
-  const statusCell=document.createElement("td");
-  const statusTag=document.createElement("span");
-  statusTag.className="case-status "+(
-   person.status==="Active"?"case-urgent":
-   person.status==="Arrested"?"case-open":"case-closed"
-  );
-  statusTag.textContent=wantedStatusArabic(person.status);
-  statusCell.appendChild(statusTag);
-  tr.appendChild(statusCell);
-
-  const chargesCell=document.createElement("td");
-  chargesCell.textContent=person.charges||"—";
-  tr.appendChild(chargesCell);
-
+  [person.full_name||"—",person.alias||"—"].forEach(value=>{
+   const td=document.createElement("td");td.textContent=value;tr.appendChild(td);
+  });
+  const threat=document.createElement("td");
+  threat.textContent=wantedThreatArabic(person.threat_level);
+  if(["Critical","High"].includes(person.threat_level))threat.className="case-urgent";
+  tr.appendChild(threat);
+  const status=document.createElement("td");
+  const tag=document.createElement("span");
+  tag.className="case-status "+(person.status==="Active"?"case-urgent":person.status==="Arrested"?"case-open":"case-closed");
+  tag.textContent=wantedStatusArabic(person.status);status.appendChild(tag);tr.appendChild(status);
+  const charges=document.createElement("td");charges.textContent=person.charges||"—";tr.appendChild(charges);
   const actions=document.createElement("td");
-  const editButton=document.createElement("button");
-  editButton.className="edit-button";
-  editButton.textContent="تعديل";
-  editButton.onclick=()=>editWanted(person.id);
-  actions.appendChild(editButton);
-
-  tr.appendChild(actions);
-  tbody.appendChild(tr);
+  const view=document.createElement("button");
+  view.className="view-button";view.textContent="عرض الملف";
+  view.onclick=()=>openWantedProfile(person.id);
+  const edit=document.createElement("button");
+  edit.className="edit-button";edit.textContent="تعديل";
+  edit.onclick=()=>editWanted(person.id);
+  actions.append(view,edit);tr.appendChild(actions);tbody.appendChild(tr);
  });
 }
-
 function resetWantedForm(){
  document.getElementById("wantedForm").reset();
  document.getElementById("editingWantedId").value="";
@@ -695,17 +675,11 @@ function resetWantedForm(){
  document.getElementById("wantedThreat").value="Medium";
  document.getElementById("wantedStatus").value="Active";
 }
-
 function editWanted(id){
  const person=wantedData.find(item=>String(item.id)===String(id));
  const message=document.getElementById("wantedMessage");
-
- if(!person){
-  message.style.color="#ff8585";
-  message.textContent="تعذر العثور على بيانات المطلوب. حدّث القائمة وحاول مرة أخرى.";
-  return;
- }
-
+ if(!person){message.style.color="#ff8585";message.textContent="تعذر العثور على بيانات المطلوب.";return;}
+ closeWantedProfile();
  document.getElementById("editingWantedId").value=person.id;
  document.getElementById("wantedFullName").value=person.full_name||"";
  document.getElementById("wantedAlias").value=person.alias||"";
@@ -713,29 +687,18 @@ function editWanted(id){
  document.getElementById("wantedCharges").value=person.charges||"";
  document.getElementById("wantedThreat").value=person.threat_level||"Medium";
  document.getElementById("wantedStatus").value=person.status||"Active";
-
  document.getElementById("wantedFormTitle").textContent="تعديل بيانات المطلوب";
  document.getElementById("saveWantedButton").textContent="حفظ التعديلات";
  document.getElementById("cancelWantedEdit").classList.remove("hidden");
-
- message.style.color="#83d6a8";
- message.textContent="تم تحميل بيانات المطلوب. يمكنك تعديلها الآن.";
-
- document.getElementById("wantedForm").scrollIntoView({
-  behavior:"smooth",
-  block:"center"
- });
-
+ message.style.color="#83d6a8";message.textContent="تم تحميل بيانات المطلوب. يمكنك تعديلها الآن.";
+ document.getElementById("wantedForm").scrollIntoView({behavior:"smooth",block:"center"});
  document.getElementById("wantedFullName").focus();
 }
-
 document.getElementById("wantedForm").addEventListener("submit",async event=>{
  event.preventDefault();
-
  const button=document.getElementById("saveWantedButton");
  const message=document.getElementById("wantedMessage");
  const editingId=document.getElementById("editingWantedId").value;
-
  const payload={
   full_name:document.getElementById("wantedFullName").value.trim(),
   alias:document.getElementById("wantedAlias").value.trim(),
@@ -744,180 +707,283 @@ document.getElementById("wantedForm").addEventListener("submit",async event=>{
   threat_level:document.getElementById("wantedThreat").value,
   status:document.getElementById("wantedStatus").value
  };
-
- if(!payload.full_name){
-  message.style.color="#ff8585";
-  message.textContent="يرجى إدخال الاسم الكامل.";
-  return;
- }
-
- button.disabled=true;
- message.textContent="";
-
+ if(!payload.full_name){message.style.color="#ff8585";message.textContent="يرجى إدخال الاسم الكامل.";return;}
+ button.disabled=true;message.textContent="";
  try{
-  const response=await fetch(
-   editingId?`/api/wanted/${encodeURIComponent(editingId)}`:"/api/wanted",
-   {
-    method:editingId?"PATCH":"POST",
-    headers:{"Content-Type":"application/json"},
-    credentials:"same-origin",
-    body:JSON.stringify(payload)
-   }
-  );
-
+  const response=await fetch(editingId?`/api/wanted/${encodeURIComponent(editingId)}`:"/api/wanted",{
+   method:editingId?"PATCH":"POST",headers:{"Content-Type":"application/json"},
+   credentials:"same-origin",body:JSON.stringify(payload)
+  });
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر حفظ بيانات المطلوب");
-
   message.style.color="#83d6a8";
-  message.textContent=editingId?
-   "تم تحديث بيانات المطلوب بنجاح.":
-   "تم تسجيل المطلوب بنجاح.";
-
-  resetWantedForm();
-  await loadWanted();
-
- }catch(error){
-  message.style.color="#ff8585";
-  message.textContent=error.message;
- }finally{
-  button.disabled=false;
- }
+  message.textContent=editingId?"تم تحديث بيانات المطلوب بنجاح.":"تم تسجيل المطلوب بنجاح.";
+  resetWantedForm();await loadWanted();
+ }catch(error){message.style.color="#ff8585";message.textContent=error.message;}
+ finally{button.disabled=false;}
 });
-
 document.getElementById("cancelWantedEdit").addEventListener("click",resetWantedForm);
 document.getElementById("wantedSearch").addEventListener("input",renderWantedTable);
 document.getElementById("refreshWanted").addEventListener("click",loadWanted);
 
+/* WANTED PROFILE, IMAGES AND HISTORY */
+function showWantedProfileLayout(show){
+ document.getElementById("wantedListArea").classList.toggle("hidden",show);
+ document.getElementById("wantedProfileView").classList.toggle("hidden",!show);
+ document.getElementById("backButton").classList.toggle("hidden",show);
+}
+function closeWantedProfile(){
+ activeWantedProfileId=null;
+ activeWantedImages=[];
+ showWantedProfileLayout(false);
+}
+async function openWantedProfile(id){
+ const person=wantedData.find(item=>String(item.id)===String(id));
+ if(!person){alert("لم يتم العثور على ملف المطلوب. حدّث القائمة وحاول مرة أخرى.");return;}
+ activeWantedProfileId=person.id;
+ showWantedProfileLayout(true);
+ renderWantedProfile(person);
+ document.getElementById("wantedProfileView").scrollIntoView({behavior:"smooth",block:"start"});
+ await Promise.all([loadWantedImages(person.id),loadWantedHistory(person.id)]);
+}
+function renderWantedProfile(person){
+ document.getElementById("profileName").textContent=person.full_name||"بدون اسم";
+ document.getElementById("profileAlias").textContent=person.alias?"الاسم المستعار: "+person.alias:"لا يوجد اسم مستعار";
+ document.getElementById("profileThreat").textContent=wantedThreatArabic(person.threat_level);
+ document.getElementById("profileStatus").textContent=wantedStatusArabic(person.status);
+ document.getElementById("profileId").textContent=person.id;
+ document.getElementById("profileCreated").textContent=formatDate(person.created_at);
+ document.getElementById("profileCharges").textContent=person.charges||"لا توجد تهم مسجلة.";
+ document.getElementById("profileDescription").textContent=person.description||"لا يوجد وصف مسجل.";
+}
+document.getElementById("backToWantedList").addEventListener("click",closeWantedProfile);
+document.getElementById("profileEditButton").addEventListener("click",()=>{
+ if(activeWantedProfileId!==null)editWanted(activeWantedProfileId);
+});
+document.getElementById("profileRefreshButton").addEventListener("click",async()=>{
+ if(activeWantedProfileId===null)return;
+ const id=activeWantedProfileId;
+ try{
+  const response=await fetch("/api/wanted",{credentials:"same-origin"});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر تحديث الملف");
+  wantedData=data.wanted||[];
+  const person=wantedData.find(p=>String(p.id)===String(id));
+  if(!person)throw new Error("لم يعد الملف موجودًا في القائمة");
+  renderWantedProfile(person);
+  await Promise.all([loadWantedImages(id),loadWantedHistory(id)]);
+ }catch(error){alert(error.message);}
+});
+
+async function loadWantedImages(wantedId){
+ const grid=document.getElementById("wantedImagesGrid");
+ grid.innerHTML='<div class="empty">جارٍ تحميل الصور...</div>';
+ try{
+  const response=await fetch(`/api/wanted-images/${encodeURIComponent(wantedId)}`,{credentials:"same-origin"});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر تحميل الصور");
+  activeWantedImages=data.images||[];
+  renderWantedImages(activeWantedImages);
+ }catch(error){
+  grid.innerHTML="";
+  const div=document.createElement("div");div.className="empty";div.textContent=error.message;grid.appendChild(div);
+ }
+}
+function renderWantedImages(images){
+ const grid=document.getElementById("wantedImagesGrid");
+ grid.innerHTML="";
+ if(!images.length){
+  const empty=document.createElement("div");empty.className="empty";empty.textContent="لا توجد صور مضافة لهذا الملف حتى الآن.";
+  grid.appendChild(empty);return;
+ }
+ images.forEach(image=>{
+  const card=document.createElement("div");card.className="image-card";
+  const img=document.createElement("img");
+  img.src=`/api/wanted-images/file/${encodeURIComponent(image.id)}`;
+  img.alt=image.image_name||"صورة المطلوب";
+  img.loading="lazy";
+  img.addEventListener("click",()=>openImageLightbox(img.src));
+  const info=document.createElement("div");info.className="image-card-info";
+  const name=document.createElement("div");name.textContent=image.image_name||"صورة";
+  const date=document.createElement("div");date.textContent=formatDate(image.created_at);
+  info.append(name,date);card.append(img,info);grid.appendChild(card);
+ });
+}
+document.getElementById("uploadWantedImages").addEventListener("click",async()=>{
+ const input=document.getElementById("wantedImageInput");
+ const message=document.getElementById("imageUploadMessage");
+ const button=document.getElementById("uploadWantedImages");
+ const files=Array.from(input.files||[]);
+ if(activeWantedProfileId===null){message.style.color="#ff8585";message.textContent="افتح ملف المطلوب أولًا.";return;}
+ if(!files.length){message.style.color="#ff8585";message.textContent="اختر صورة واحدة على الأقل.";return;}
+ const allowed=["image/jpeg","image/png","image/webp"];
+ const invalid=files.find(file=>!allowed.includes(file.type)||file.size>5*1024*1024);
+ if(invalid){
+  message.style.color="#ff8585";
+  message.textContent="الملف "+invalid.name+" غير مدعوم أو يتجاوز 5 ميجابايت.";
+  return;
+ }
+ button.disabled=true;message.style.color="#aab5c8";message.textContent="جارٍ رفع الصور...";
+ let uploaded=0;
+ try{
+  for(const file of files){
+   const formData=new FormData();
+   formData.append("image",file);
+   const response=await fetch(`/api/wanted-images/${encodeURIComponent(activeWantedProfileId)}`,{
+    method:"POST",credentials:"same-origin",body:formData
+   });
+   const data=await response.json();
+   if(!response.ok)throw new Error(data.error||"تعذر رفع الصورة: "+file.name);
+   uploaded++;
+  }
+  message.style.color="#83d6a8";
+  message.textContent=`تم رفع ${uploaded} صورة بنجاح.`;
+  input.value="";
+  await loadWantedImages(activeWantedProfileId);
+ }catch(error){
+  message.style.color="#ff8585";
+  message.textContent=uploaded?`تم رفع ${uploaded} صورة، لكن تعذر إكمال البقية: ${error.message}`:error.message;
+  if(activeWantedProfileId!==null)await loadWantedImages(activeWantedProfileId);
+ }finally{button.disabled=false;}
+});
+
+async function loadWantedHistory(wantedId){
+ const container=document.getElementById("wantedHistoryList");
+ container.innerHTML='<div class="empty">جارٍ تحميل السجل التاريخي...</div>';
+ try{
+  const response=await fetch(`/api/wanted-history/${encodeURIComponent(wantedId)}`,{credentials:"same-origin"});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر تحميل السجل التاريخي");
+  renderWantedHistory(data.history||[]);
+ }catch(error){
+  container.innerHTML="";
+  const empty=document.createElement("div");empty.className="empty";empty.textContent=error.message;container.appendChild(empty);
+ }
+}
+function historyActionArabic(action){
+ return ({
+  CREATE:"إنشاء ملف المطلوب",
+  UPDATE:"تعديل بيانات المطلوب",
+  STATUS_CHANGE:"تغيير حالة المطلوب",
+  NOTE:"إضافة ملاحظة"
+ })[action]||action||"إجراء مسجل";
+}
+function renderWantedHistory(history){
+ const container=document.getElementById("wantedHistoryList");
+ container.innerHTML="";
+ if(!history.length){
+  const empty=document.createElement("div");empty.className="empty";
+  empty.textContent="لا توجد إجراءات مسجلة في السجل التاريخي لهذا الملف.";
+  container.appendChild(empty);return;
+ }
+ history.forEach(item=>{
+  const card=document.createElement("div");card.className="history-item";
+  const title=document.createElement("h4");title.textContent=historyActionArabic(item.action);
+  const meta=document.createElement("div");meta.className="history-meta";
+  const officer=item.officer_name||"ضابط غير معروف";
+  const rank=item.officer_rank||"رتبة غير محددة";
+  meta.textContent=`الضابط: ${officer} — الرتبة: ${rank} — التاريخ: ${formatDate(item.created_at)}`;
+  const details=document.createElement("div");details.className="history-details";
+  details.textContent=formatHistoryDetails(item.details);
+  card.append(title,meta,details);container.appendChild(card);
+ });
+}
+function formatHistoryDetails(details){
+ if(!details)return "لا توجد تفاصيل إضافية.";
+ if(typeof details==="string"){
+  try{details=JSON.parse(details);}catch{return details;}
+ }
+ if(typeof details!=="object")return String(details);
+ const labels={
+  full_name:"الاسم الكامل",alias:"الاسم المستعار",threat_level:"مستوى الخطورة",
+  status:"الحالة",charges:"التهم",description:"الوصف",
+  before:"قبل التعديل",after:"بعد التعديل",note:"الملاحظة"
+ };
+ return Object.entries(details).map(([key,value])=>{
+  let formatted=value;
+  if(key==="status")formatted=wantedStatusArabic(value);
+  if(key==="threat_level")formatted=wantedThreatArabic(value);
+  if(value&&typeof value==="object")formatted=JSON.stringify(value,null,2);
+  return `${labels[key]||key}: ${formatted??"—"}`;
+ }).join("\n");
+}
+function openImageLightbox(src){
+ document.getElementById("lightboxImage").src=src;
+ document.getElementById("imageLightbox").classList.remove("hidden");
+}
+function closeImageLightbox(){
+ document.getElementById("imageLightbox").classList.add("hidden");
+ document.getElementById("lightboxImage").src="";
+}
+document.getElementById("closeLightbox").addEventListener("click",closeImageLightbox);
+document.getElementById("imageLightbox").addEventListener("click",event=>{
+ if(event.target.id==="imageLightbox")closeImageLightbox();
+});
+document.addEventListener("keydown",event=>{
+ if(event.key==="Escape")closeImageLightbox();
+});
+
 /* CASE MANAGEMENT */
-
 function statusArabic(status){
- const labels={
-  "Open":"مفتوحة",
-  "In Progress":"قيد التحقيق",
-  "Under Review":"قيد المراجعة",
-  "Closed":"مغلقة"
- };
- return labels[status]||status||"غير محددة";
+ return ({"Open":"مفتوحة","In Progress":"قيد التحقيق","Under Review":"قيد المراجعة","Closed":"مغلقة"})[status]||status||"غير محددة";
 }
-
 function priorityArabic(priority){
- const labels={
-  "Normal":"عادية",
-  "High":"مرتفعة",
-  "Critical":"حرجة",
-  "Low":"منخفضة"
- };
- return labels[priority]||priority||"عادية";
+ return ({Normal:"عادية",High:"مرتفعة",Critical:"حرجة",Low:"منخفضة"})[priority]||priority||"عادية";
 }
-
-function formatDate(value){
- if(!value)return "—";
- const date=new Date(value);
- if(Number.isNaN(date.getTime()))return "—";
- return date.toLocaleDateString("en-GB");
-}
-
 async function loadCases(){
  const tbody=document.getElementById("casesTable");
  const message=document.getElementById("casesListMessage");
- tbody.innerHTML='<tr><td colspan="8">جارٍ تحميل القضايا...</td></tr>';
- message.textContent="";
+ tbody.innerHTML='<tr><td colspan="8">جارٍ تحميل القضايا...</td></tr>';message.textContent="";
  try{
   const response=await fetch("/api/cases",{credentials:"same-origin"});
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر تحميل القضايا");
-
   if(!Array.isArray(data))throw new Error("استجابة القضايا غير متوقعة");
   casesData=data;
-
   document.getElementById("caseCount").textContent=casesData.length;
   document.getElementById("casesTotal").textContent=casesData.length;
   document.getElementById("casesOpen").textContent=casesData.filter(c=>c.status!=="Closed").length;
   document.getElementById("casesClosed").textContent=casesData.filter(c=>c.status==="Closed").length;
-
   renderCasesTable();
  }catch(error){
   tbody.innerHTML='<tr><td colspan="8">تعذر تحميل القضايا.</td></tr>';
-  message.style.color="#ff8585";
-  message.textContent=error.message;
+  message.style.color="#ff8585";message.textContent=error.message;
  }
 }
-
 function renderCasesTable(){
  const tbody=document.getElementById("casesTable");
  const search=document.getElementById("caseSearch").value.trim().toLowerCase();
  const filter=document.getElementById("caseStatusFilter").value;
-
- const filtered=casesData.filter(c=>{
-  const text=[c.case_number,c.title,c.assigned_officer_name,c.creator_name].join(" ").toLowerCase();
-  return text.includes(search)&&(!filter||c.status===filter);
- });
-
+ const filtered=casesData.filter(c=>
+  [c.case_number,c.title,c.assigned_officer_name,c.creator_name].join(" ").toLowerCase().includes(search)&&(!filter||c.status===filter)
+ );
  tbody.innerHTML="";
- if(!filtered.length){
-  tbody.innerHTML='<tr><td colspan="8">لا توجد قضايا مطابقة للبحث.</td></tr>';
-  return;
- }
-
+ if(!filtered.length){tbody.innerHTML='<tr><td colspan="8">لا توجد قضايا مطابقة للبحث.</td></tr>';return;}
  filtered.forEach(c=>{
   const tr=document.createElement("tr");
-
-  const number=document.createElement("td");
-  number.textContent=c.case_number||"—";
-  tr.appendChild(number);
-
-  const title=document.createElement("td");
-  title.textContent=c.title||"—";
-  tr.appendChild(title);
-
-  const status=document.createElement("td");
-  const statusTag=document.createElement("span");
-  statusTag.className="case-status "+(c.status==="Closed"?"case-closed":"case-open");
-  statusTag.textContent=statusArabic(c.status);
-  status.appendChild(statusTag);
-  tr.appendChild(status);
-
-  const priority=document.createElement("td");
-  priority.textContent=priorityArabic(c.priority);
-  if(c.priority==="Critical"||c.priority==="High")priority.className="case-urgent";
-  tr.appendChild(priority);
-
-  [c.assigned_officer_name||"غير معيّن",c.creator_name||"—",formatDate(c.created_at)].forEach(value=>{
-   const td=document.createElement("td");
-   td.textContent=value;
-   tr.appendChild(td);
+  [c.case_number||"—",c.title||"—"].forEach(value=>{
+   const td=document.createElement("td");td.textContent=value;tr.appendChild(td);
   });
-
+  const status=document.createElement("td");
+  const tag=document.createElement("span");tag.className="case-status "+(c.status==="Closed"?"case-closed":"case-open");
+  tag.textContent=statusArabic(c.status);status.appendChild(tag);tr.appendChild(status);
+  const priority=document.createElement("td");priority.textContent=priorityArabic(c.priority);
+  if(["Critical","High"].includes(c.priority))priority.className="case-urgent";tr.appendChild(priority);
+  [c.assigned_officer_name||"غير معيّن",c.creator_name||"—",formatDate(c.created_at)].forEach(value=>{
+   const td=document.createElement("td");td.textContent=value;tr.appendChild(td);
+  });
   const actions=document.createElement("td");
-
-  const viewButton=document.createElement("button");
-  viewButton.className="small-button";
-  viewButton.textContent="عرض";
-  viewButton.onclick=()=>viewCase(c.id);
-
-  const editButton=document.createElement("button");
-  editButton.className="edit-button";
-  editButton.textContent="تعديل";
-  editButton.onclick=()=>editCase(c.id);
-
-  const deleteButton=document.createElement("button");
-  deleteButton.className="delete-button";
-  deleteButton.textContent="حذف";
-  deleteButton.onclick=()=>deleteCase(c.id);
-
-  actions.append(viewButton,editButton,deleteButton);
-  tr.appendChild(actions);
-  tbody.appendChild(tr);
+  const view=document.createElement("button");view.className="small-button";view.textContent="عرض";view.onclick=()=>viewCase(c.id);
+  const edit=document.createElement("button");edit.className="edit-button";edit.textContent="تعديل";edit.onclick=()=>editCase(c.id);
+  const del=document.createElement("button");del.className="delete-button";del.textContent="حذف";del.onclick=()=>deleteCase(c.id);
+  actions.append(view,edit,del);tr.appendChild(actions);tbody.appendChild(tr);
  });
 }
-
 document.getElementById("caseForm").addEventListener("submit",async event=>{
  event.preventDefault();
-
  const button=document.getElementById("saveCaseButton");
  const message=document.getElementById("caseMessage");
  const editingId=document.getElementById("editingCaseId").value;
-
  const assignedValue=document.getElementById("caseAssignedTo").value.trim();
  const payload={
   title:document.getElementById("caseTitle").value.trim(),
@@ -926,32 +992,19 @@ document.getElementById("caseForm").addEventListener("submit",async event=>{
   priority:document.getElementById("casePriority").value,
   assigned_to:assignedValue||null
  };
-
- button.disabled=true;
- message.textContent="";
-
+ button.disabled=true;message.textContent="";
  try{
   const response=await fetch(editingId?`/api/cases/${encodeURIComponent(editingId)}`:"/api/cases",{
-   method:editingId?"PATCH":"POST",
-   headers:{"Content-Type":"application/json"},
-   credentials:"same-origin",
-   body:JSON.stringify(payload)
+   method:editingId?"PATCH":"POST",headers:{"Content-Type":"application/json"},
+   credentials:"same-origin",body:JSON.stringify(payload)
   });
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر حفظ القضية");
-
-  message.style.color="#83d6a8";
-  message.textContent=editingId?"تم تحديث القضية بنجاح.":"تم إنشاء القضية بنجاح.";
-  resetCaseForm();
-  await loadCases();
- }catch(error){
-  message.style.color="#ff8585";
-  message.textContent=error.message;
- }finally{
-  button.disabled=false;
- }
+  message.style.color="#83d6a8";message.textContent=editingId?"تم تحديث القضية بنجاح.":"تم إنشاء القضية بنجاح.";
+  resetCaseForm();await loadCases();
+ }catch(error){message.style.color="#ff8585";message.textContent=error.message;}
+ finally{button.disabled=false;}
 });
-
 function resetCaseForm(){
  document.getElementById("caseForm").reset();
  document.getElementById("editingCaseId").value="";
@@ -960,73 +1013,45 @@ function resetCaseForm(){
  document.getElementById("cancelCaseEdit").classList.add("hidden");
  document.getElementById("caseMessage").textContent="";
 }
-
 document.getElementById("cancelCaseEdit").addEventListener("click",resetCaseForm);
-
 function editCase(id){
  const c=casesData.find(item=>String(item.id)===String(id));
-
  const message=document.getElementById("caseMessage");
-
- if(!c){
-  message.style.color="#ff8585";
-  message.textContent="تعذر العثور على بيانات القضية. حدّث القائمة وحاول مرة أخرى.";
-  return;
- }
-
+ if(!c){message.style.color="#ff8585";message.textContent="تعذر العثور على بيانات القضية.";return;}
  document.getElementById("editingCaseId").value=c.id;
  document.getElementById("caseTitle").value=c.title||"";
  document.getElementById("caseDescription").value=c.description||"";
  document.getElementById("caseStatus").value=c.status||"Open";
  document.getElementById("casePriority").value=c.priority||"Normal";
  document.getElementById("caseAssignedTo").value=c.assigned_to||"";
-
  document.getElementById("caseFormTitle").textContent="تعديل القضية "+(c.case_number||"");
  document.getElementById("saveCaseButton").textContent="حفظ التعديلات";
  document.getElementById("cancelCaseEdit").classList.remove("hidden");
-
- message.style.color="#83d6a8";
- message.textContent="تم تحميل بيانات القضية. يمكنك تعديلها الآن.";
-
- document.getElementById("caseForm").scrollIntoView({
-  behavior:"smooth",
-  block:"center"
- });
-
+ message.style.color="#83d6a8";message.textContent="تم تحميل بيانات القضية. يمكنك تعديلها الآن.";
+ document.getElementById("caseForm").scrollIntoView({behavior:"smooth",block:"center"});
  document.getElementById("caseTitle").focus();
 }
-
 async function viewCase(id){
  try{
   const response=await fetch(`/api/cases/${encodeURIComponent(id)}`,{credentials:"same-origin"});
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر عرض القضية");
-
   alert(
-   "رقم القضية: "+(data.case_number||"—")+
-   "\nالعنوان: "+(data.title||"—")+
-   "\nالحالة: "+statusArabic(data.status)+
-   "\nالأولوية: "+priorityArabic(data.priority)+
+   "رقم القضية: "+(data.case_number||"—")+"\nالعنوان: "+(data.title||"—")+
+   "\nالحالة: "+statusArabic(data.status)+"\nالأولوية: "+priorityArabic(data.priority)+
    "\nالضابط المكلّف: "+(data.assigned_officer_name||"غير معيّن")+
-   "\nمنشئ القضية: "+(data.creator_name||"—")+
-   "\n\nالوصف:\n"+(data.description||"لا يوجد وصف")
+   "\nمنشئ القضية: "+(data.creator_name||"—")+"\n\nالوصف:\n"+(data.description||"لا يوجد وصف")
   );
  }catch(error){alert(error.message);}
 }
-
 async function deleteCase(id){
  const c=casesData.find(item=>String(item.id)===String(id));
  if(!c)return;
-
  if(!confirm("هل أنت متأكد من حذف القضية "+c.case_number+"؟"))return;
-
  try{
-  const response=await fetch(`/api/cases/${encodeURIComponent(id)}`,{
-   method:"DELETE",credentials:"same-origin"
-  });
+  const response=await fetch(`/api/cases/${encodeURIComponent(id)}`,{method:"DELETE",credentials:"same-origin"});
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر حذف القضية");
-
   document.getElementById("caseMessage").style.color="#83d6a8";
   document.getElementById("caseMessage").textContent=data.message||"تم حذف القضية.";
   await loadCases();
@@ -1035,13 +1060,11 @@ async function deleteCase(id){
   document.getElementById("caseMessage").textContent=error.message;
  }
 }
-
 document.getElementById("caseSearch").addEventListener("input",renderCasesTable);
 document.getElementById("caseStatusFilter").addEventListener("change",renderCasesTable);
 document.getElementById("refreshCases").addEventListener("click",loadCases);
 
 /* RELATIONSHIP NETWORK */
-
 function getPeopleFromRelations(relations){
  const people=new Set();
  relations.forEach(r=>{
@@ -1050,7 +1073,6 @@ function getPeopleFromRelations(relations){
  });
  return [...people].filter(Boolean);
 }
-
 function buildNetwork(relations){
  if(typeof vis==="undefined"){
   document.getElementById("network").innerHTML='<div class="empty">تعذر تحميل مكتبة الشبكة. تحقق من اتصال الإنترنت ثم حدّث الصفحة.</div>';
@@ -1069,171 +1091,118 @@ function buildNetwork(relations){
   font:{color:"#c5d0df",size:11,background:"#101c30",strokeWidth:0},
   width:2,smooth:{type:"dynamic"}
  }));
- networkNodes=new vis.DataSet(nodes);
- networkEdges=new vis.DataSet(edges);
+ networkNodes=new vis.DataSet(nodes);networkEdges=new vis.DataSet(edges);
  const container=document.getElementById("network");
- const data={nodes:networkNodes,edges:networkEdges};
  const options={
-  autoResize:true,
-  interaction:{hover:true,tooltipDelay:150,navigationButtons:true,keyboard:true},
+  autoResize:true,interaction:{hover:true,tooltipDelay:150,navigationButtons:true,keyboard:true},
   physics:{enabled:true,stabilization:{iterations:180},barnesHut:{gravitationalConstant:-4500,springLength:160,springConstant:0.035,damping:0.12}},
   nodes:{shadow:{enabled:true,color:"rgba(0,0,0,.4)",size:10,x:2,y:2}},
   edges:{selectionWidth:2,hoverWidth:2}
  };
  if(networkInstance)networkInstance.destroy();
- networkInstance=new vis.Network(container,data,options);
- networkInstance.on("click",params=>{
-  if(params.nodes.length)showPersonDetails(params.nodes[0]);
- });
+ networkInstance=new vis.Network(container,{nodes:networkNodes,edges:networkEdges},options);
+ networkInstance.on("click",params=>{if(params.nodes.length)showPersonDetails(params.nodes[0]);});
  document.getElementById("totalRelations").textContent=relations.length;
  document.getElementById("totalPeople").textContent=people.length;
  document.getElementById("relationshipCount").textContent=relations.length;
 }
-
 function getPersonConnections(name){
  const direct=[];
  relationshipData.forEach(r=>{
-  const one=String(r.person_one||"").trim();
-  const two=String(r.person_two||"").trim();
+  const one=String(r.person_one||"").trim(),two=String(r.person_two||"").trim();
   if(one===name)direct.push({name:two,relation:r.relationship_type,notes:r.notes});
   else if(two===name)direct.push({name:one,relation:r.relationship_type,notes:r.notes});
  });
  return direct;
 }
-
 function getIndirectPeople(name){
- const visited=new Set([name]);
- const queue=[{name,depth:0}];
- const indirect=new Map();
+ const visited=new Set([name]),queue=[{name,depth:0}],indirect=new Map();
  while(queue.length){
-  const current=queue.shift();
-  if(current.depth>=2)continue;
+  const current=queue.shift();if(current.depth>=2)continue;
   getPersonConnections(current.name).forEach(connection=>{
    if(visited.has(connection.name))return;
-   visited.add(connection.name);
-   queue.push({name:connection.name,depth:current.depth+1});
+   visited.add(connection.name);queue.push({name:connection.name,depth:current.depth+1});
    if(connection.name!==name)indirect.set(connection.name,{name:connection.name,depth:current.depth+1});
   });
  }
  return [...indirect.values()].filter(p=>p.depth>1);
 }
-
 function showPersonDetails(name){
  selectedPerson=name;
- const direct=getPersonConnections(name);
- const indirect=getIndirectPeople(name);
+ const direct=getPersonConnections(name),indirect=getIndirectPeople(name);
  document.getElementById("selectedPersonCount").textContent=name;
- const details=document.getElementById("personDetails");
- details.innerHTML="";
- const title=document.createElement("div");
- title.className="person-name";
- title.textContent=name;
- details.appendChild(title);
- const directTitle=document.createElement("p");
- directTitle.innerHTML="<strong>العلاقات المباشرة: "+direct.length+"</strong>";
- details.appendChild(directTitle);
+ const details=document.getElementById("personDetails");details.innerHTML="";
+ const title=document.createElement("div");title.className="person-name";title.textContent=name;details.appendChild(title);
+ const directTitle=document.createElement("p");directTitle.textContent="العلاقات المباشرة: "+direct.length;details.appendChild(directTitle);
  if(!direct.length){
-  const empty=document.createElement("div");
-  empty.className="relation-item";
-  empty.textContent="لا توجد علاقات مباشرة مسجلة.";
-  details.appendChild(empty);
+  const empty=document.createElement("div");empty.className="relation-item";empty.textContent="لا توجد علاقات مباشرة مسجلة.";details.appendChild(empty);
  }
  direct.forEach(item=>{
-  const div=document.createElement("div");
-  div.className="relation-item";
-  const strong=document.createElement("strong");
-  strong.textContent=item.name;
-  const type=document.createElement("div");
-  type.textContent="نوع العلاقة: "+(item.relation||"غير محدد");
-  const note=document.createElement("div");
-  note.textContent="الملاحظات: "+(item.notes||"لا توجد ملاحظات");
-  div.append(strong,type,note);
-  details.appendChild(div);
+  const div=document.createElement("div");div.className="relation-item";
+  const strong=document.createElement("strong");strong.textContent=item.name;
+  const type=document.createElement("div");type.textContent="نوع العلاقة: "+(item.relation||"غير محدد");
+  const note=document.createElement("div");note.textContent="الملاحظات: "+(item.notes||"لا توجد ملاحظات");
+  div.append(strong,type,note);details.appendChild(div);
  });
- const indirectTitle=document.createElement("p");
- indirectTitle.innerHTML="<strong>الأشخاص المرتبطون بشكل غير مباشر: "+indirect.length+"</strong>";
- details.appendChild(indirectTitle);
+ const indirectTitle=document.createElement("p");indirectTitle.textContent="الأشخاص المرتبطون بشكل غير مباشر: "+indirect.length;details.appendChild(indirectTitle);
  if(!indirect.length){
-  const empty=document.createElement("div");
-  empty.className="relation-item";
-  empty.textContent="لا توجد روابط غير مباشرة مكتشفة ضمن مستوى التحليل الحالي.";
-  details.appendChild(empty);
+  const empty=document.createElement("div");empty.className="relation-item";
+  empty.textContent="لا توجد روابط غير مباشرة مكتشفة ضمن مستوى التحليل الحالي.";details.appendChild(empty);
  }
  indirect.forEach(item=>{
-  const div=document.createElement("div");
-  div.className="relation-item";
-  div.textContent=item.name+" — عبر مستوى ارتباط "+item.depth;
-  details.appendChild(div);
+  const div=document.createElement("div");div.className="relation-item";
+  div.textContent=item.name+" — عبر مستوى ارتباط "+item.depth;details.appendChild(div);
  });
 }
-
 async function loadRelationships(){
  const table=document.getElementById("relationshipsTable");
  const message=document.getElementById("relationshipMessage");
- table.innerHTML='<tr><td colspan="5">جارٍ تحميل العلاقات...</td></tr>';
- message.textContent="";
+ table.innerHTML='<tr><td colspan="5">جارٍ تحميل العلاقات...</td></tr>';message.textContent="";
  try{
   const response=await fetch("/api/relationships",{credentials:"same-origin"});
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"تعذر تحميل شبكة العلاقات");
   relationshipData=data.relationships||[];
-  buildNetwork(relationshipData);
-  renderRelationshipsTable();
-  if(selectedPerson&&getPeopleFromRelations(relationshipData).includes(selectedPerson)){
-   showPersonDetails(selectedPerson);
-  }else{
-   selectedPerson=null;
-   document.getElementById("selectedPersonCount").textContent="—";
+  buildNetwork(relationshipData);renderRelationshipsTable();
+  if(selectedPerson&&getPeopleFromRelations(relationshipData).includes(selectedPerson))showPersonDetails(selectedPerson);
+  else{
+   selectedPerson=null;document.getElementById("selectedPersonCount").textContent="—";
    document.getElementById("personDetails").textContent="اختر شخصًا من الشبكة لعرض تفاصيله.";
   }
  }catch(error){
   table.innerHTML='<tr><td colspan="5">تعذر تحميل العلاقات.</td></tr>';
-  message.style.color="#ff8585";
-  message.textContent=error.message;
+  message.style.color="#ff8585";message.textContent=error.message;
  }
 }
-
 function renderRelationshipsTable(){
- const tbody=document.getElementById("relationshipsTable");
- tbody.innerHTML="";
- if(!relationshipData.length){
-  tbody.innerHTML='<tr><td colspan="5">لا توجد علاقات مسجلة حتى الآن.</td></tr>';
-  return;
- }
+ const tbody=document.getElementById("relationshipsTable");tbody.innerHTML="";
+ if(!relationshipData.length){tbody.innerHTML='<tr><td colspan="5">لا توجد علاقات مسجلة حتى الآن.</td></tr>';return;}
  relationshipData.forEach(r=>{
   const tr=document.createElement("tr");
   [r.person_one,r.relationship_type,r.person_two,r.notes||"—"].forEach(value=>{
-   const td=document.createElement("td");
-   td.textContent=value??"—";
-   tr.appendChild(td);
+   const td=document.createElement("td");td.textContent=value??"—";tr.appendChild(td);
   });
   const action=document.createElement("td");
   if(isAdmin()||String(r.created_by)===String(currentOfficer?.id)){
-   const del=document.createElement("button");
-   del.className="delete-button";
-   del.textContent="حذف";
+   const del=document.createElement("button");del.className="delete-button";del.textContent="حذف";
    del.onclick=async()=>{
     if(!confirm("هل تريد حذف هذه العلاقة؟"))return;
     try{
      const response=await fetch(`/api/relationships/${encodeURIComponent(r.id)}`,{method:"DELETE",credentials:"same-origin"});
-     const result=await response.json();
-     if(!response.ok)throw new Error(result.error||"تعذر حذف العلاقة");
+     const result=await response.json();if(!response.ok)throw new Error(result.error||"تعذر حذف العلاقة");
      await loadRelationships();
     }catch(error){alert(error.message);}
    };
    action.appendChild(del);
   }else action.textContent="—";
-  tr.appendChild(action);
-  tbody.appendChild(tr);
+  tr.appendChild(action);tbody.appendChild(tr);
  });
 }
-
 document.getElementById("relationshipForm").addEventListener("submit",async event=>{
  event.preventDefault();
  const button=document.getElementById("addRelationshipButton");
  const message=document.getElementById("relationshipMessage");
- button.disabled=true;
- message.textContent="";
+ button.disabled=true;message.textContent="";
  const payload={
   person_one:document.getElementById("personOne").value.trim(),
   person_two:document.getElementById("personTwo").value.trim(),
@@ -1245,86 +1214,54 @@ document.getElementById("relationshipForm").addEventListener("submit",async even
    method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
    body:JSON.stringify(payload)
   });
-  const data=await response.json();
-  if(!response.ok)throw new Error(data.error||"تعذر إضافة العلاقة");
-  message.style.color="#83d6a8";
-  message.textContent="تمت إضافة العلاقة بنجاح.";
-  event.target.reset();
-  await loadRelationships();
- }catch(error){
-  message.style.color="#ff8585";
-  message.textContent=error.message;
- }finally{button.disabled=false;}
+  const data=await response.json();if(!response.ok)throw new Error(data.error||"تعذر إضافة العلاقة");
+  message.style.color="#83d6a8";message.textContent="تمت إضافة العلاقة بنجاح.";
+  event.target.reset();await loadRelationships();
+ }catch(error){message.style.color="#ff8585";message.textContent=error.message;}
+ finally{button.disabled=false;}
 });
-
 document.getElementById("networkSearch").addEventListener("input",event=>{
- const value=event.target.value.trim().toLowerCase();
- if(!networkNodes)return;
+ const value=event.target.value.trim().toLowerCase();if(!networkNodes)return;
  const people=getPeopleFromRelations(relationshipData);
  const matched=people.find(name=>name.toLowerCase().includes(value));
  if(!value){
-  networkNodes.forEach(node=>networkNodes.update({id:node.id,color:{background:"#b18a42",border:"#f0d18c"}}));
-  return;
+  networkNodes.forEach(node=>networkNodes.update({id:node.id,color:{background:"#b18a42",border:"#f0d18c"}}));return;
  }
  networkNodes.forEach(node=>{
   const found=node.id.toLowerCase().includes(value);
-  networkNodes.update({
-   id:node.id,
-   color:found?{background:"#d7b46a",border:"#fff0c7"}:{background:"#35445b",border:"#35445b"}
-  });
+  networkNodes.update({id:node.id,color:found?{background:"#d7b46a",border:"#fff0c7"}:{background:"#35445b",border:"#35445b"}});
  });
- if(matched&&networkInstance){
-  networkInstance.focus(matched,{scale:1.3,animation:{duration:500}});
-  showPersonDetails(matched);
- }
+ if(matched&&networkInstance){networkInstance.focus(matched,{scale:1.3,animation:{duration:500}});showPersonDetails(matched);}
 });
-
 document.getElementById("refreshNetwork").addEventListener("click",loadRelationships);
 document.getElementById("resetNetwork").addEventListener("click",()=>{
  document.getElementById("networkSearch").value="";
  if(networkInstance)networkInstance.fit({animation:true});
- if(networkNodes){
-  networkNodes.forEach(node=>networkNodes.update({id:node.id,color:{background:"#b18a42",border:"#f0d18c"}}));
- }
+ if(networkNodes)networkNodes.forEach(node=>networkNodes.update({id:node.id,color:{background:"#b18a42",border:"#f0d18c"}}));
 });
 
 /* NAVIGATION */
-
 function openSection(key){
  const sectionView=document.getElementById("sectionView");
- const officersSection=document.getElementById("officersSection");
- const relationshipsSection=document.getElementById("relationshipsSection");
- const casesSection=document.getElementById("casesSection");
- const wantedSection=document.getElementById("wantedSection");
- const otherSection=document.getElementById("otherSection");
-
+ const sections=["officersSection","relationshipsSection","casesSection","wantedSection","otherSection"];
  sectionView.classList.remove("hidden");
- officersSection.classList.add("hidden");
- relationshipsSection.classList.add("hidden");
- casesSection.classList.add("hidden");
- wantedSection.classList.add("hidden");
- otherSection.classList.add("hidden");
-
+ sections.forEach(id=>document.getElementById(id).classList.add("hidden"));
+ closeWantedProfile();
  if(key==="officers"){
-  officersSection.classList.remove("hidden");
+  document.getElementById("officersSection").classList.remove("hidden");
   const admin=isAdmin();
   document.getElementById("adminOnly").classList.toggle("hidden",!admin);
   document.getElementById("officerAccessMessage").classList.toggle("hidden",admin);
   document.getElementById("officerAccessMessage").textContent=admin?"":"إدارة قائمة الضباط تتطلب صلاحية المدير.";
   loadOfficers();
  }else if(key==="relationships"){
-  relationshipsSection.classList.remove("hidden");
-  loadRelationships();
+  document.getElementById("relationshipsSection").classList.remove("hidden");loadRelationships();
  }else if(key==="cases"){
-  casesSection.classList.remove("hidden");
-  resetCaseForm();
-  loadCases();
+  document.getElementById("casesSection").classList.remove("hidden");resetCaseForm();loadCases();
  }else if(key==="wanted"){
-  wantedSection.classList.remove("hidden");
-  resetWantedForm();
-  loadWanted();
+  document.getElementById("wantedSection").classList.remove("hidden");resetWantedForm();loadWanted();
  }else{
-  otherSection.classList.remove("hidden");
+  document.getElementById("otherSection").classList.remove("hidden");
   const info=sectionInfo[key];
   if(info){
    document.getElementById("sectionTitle").textContent=info[0];
@@ -1333,15 +1270,13 @@ function openSection(key){
  }
  sectionView.scrollIntoView({behavior:"smooth"});
 }
-
 document.querySelectorAll(".menu-card").forEach(card=>{
  card.addEventListener("click",()=>openSection(card.dataset.section));
 });
-
 document.getElementById("backButton").addEventListener("click",()=>{
+ closeWantedProfile();
  document.getElementById("sectionView").classList.add("hidden");
 });
-
 document.getElementById("refreshOfficers").addEventListener("click",loadOfficers);
 
 checkSession();
