@@ -158,5 +158,30 @@ ON wanted_history(wanted_id);
 CREATE INDEX IF NOT EXISTS wanted_images_wanted_id_idx
 ON wanted_images(wanted_id);
 
+-- سجل تحديثات القضايا
+CREATE TABLE IF NOT EXISTS case_history (
+    id BIGSERIAL PRIMARY KEY,
+    case_id BIGINT NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+    officer_id BIGINT REFERENCES officers(id) ON DELETE SET NULL,
+    action VARCHAR(50) NOT NULL,
+    details JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ملاحظات القضايا
+CREATE TABLE IF NOT EXISTS case_notes (
+    id BIGSERIAL PRIMARY KEY,
+    case_id BIGINT NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+    officer_id BIGINT REFERENCES officers(id) ON DELETE SET NULL,
+    note TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS case_history_case_id_idx
+ON case_history(case_id);
+
+CREATE INDEX IF NOT EXISTS case_notes_case_id_idx
+ON case_notes(case_id);
+
 CREATE INDEX IF NOT EXISTS case_history_case_id_idx
 ON case_history(case_id);
