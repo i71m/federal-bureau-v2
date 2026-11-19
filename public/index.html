@@ -46,12 +46,14 @@ button:disabled{opacity:.6;cursor:wait}
 .panel p{color:#aab5c8;line-height:1.8}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .table-wrap{overflow-x:auto;margin-top:20px}
-table{width:100%;border-collapse:collapse;min-width:600px}
+table{width:100%;border-collapse:collapse;min-width:800px}
 th,td{padding:13px;text-align:right;border-bottom:1px solid #34445b;font-size:13px}
 th{color:#d7b46a;background:#0b1728}
 td{color:#e9edf5}
 .small-button{padding:7px 12px;border:0;border-radius:5px;background:#315b49;color:white}
+.delete-button{padding:7px 12px;border:0;border-radius:5px;background:#792f36;color:white;margin-right:5px}
 .active-label{color:#83d6a8}
+.disabled-label{color:#ff8585}
 footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 @media(max-width:600px){header{padding:16px}.brand{font-size:18px}.container{padding:16px}.hero h1{font-size:26px}}
 </style>
@@ -135,17 +137,16 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
        <select id="newRank" required>
         <option value="">اختر الرتبة</option>
         <option value="Agent 0">Agent 0</option>
-<option value="Agent 1">Agent 1</option>
-<option value="Agent 2">Agent 2</option>
-<option value="Agent 3">Agent 3</option>
-<option value="Agent 4">Agent 4</option>
-<option value="Agent 5">Agent 5</option>
-<option value="Agent 6">Agent 6</option>
-<option value="Agent 7">Agent 7</option>
-<option value="Agent 8">Agent 8</option>
-<option value="Agent 9">Agent 9</option>
-<option value="Agent 10">Agent 10</option>
-    
+        <option value="Agent 1">Agent 1</option>
+        <option value="Agent 2">Agent 2</option>
+        <option value="Agent 3">Agent 3</option>
+        <option value="Agent 4">Agent 4</option>
+        <option value="Agent 5">Agent 5</option>
+        <option value="Agent 6">Agent 6</option>
+        <option value="Agent 7">Agent 7</option>
+        <option value="Agent 8">Agent 8</option>
+        <option value="Agent 9">Agent 9</option>
+        <option value="Agent 10">Agent 10</option>
        </select>
       </div>
       <button class="primary full" id="createOfficerButton" type="submit">إنشاء حساب الضابط</button>
@@ -163,10 +164,17 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
     <div class="table-wrap">
      <table>
       <thead>
-       <tr><th>الاسم</th><th>اسم المستخدم</th><th>الرتبة</th><th>الدور</th><th>الحالة</th></tr>
+       <tr>
+        <th>الاسم</th>
+        <th>اسم المستخدم</th>
+        <th>الرتبة</th>
+        <th>الدور</th>
+        <th>الحالة</th>
+        <th>إدارة الحساب</th>
+       </tr>
       </thead>
       <tbody id="officersTable">
-       <tr><td colspan="5">جارٍ تحميل البيانات...</td></tr>
+       <tr><td colspan="6">جارٍ تحميل البيانات...</td></tr>
       </tbody>
      </table>
     </div>
@@ -271,7 +279,7 @@ function isAdmin(){
 async function loadOfficers(){
  const tbody=document.getElementById("officersTable");
  const message=document.getElementById("listMessage");
- tbody.innerHTML='<tr><td colspan="5">جارٍ تحميل البيانات...</td></tr>';
+ tbody.innerHTML='<tr><td colspan="6">جارٍ تحميل البيانات...</td></tr>';
  message.textContent="";
 
  try{
@@ -283,13 +291,15 @@ async function loadOfficers(){
   document.getElementById("officerCount").textContent=officers.length;
 
   if(officers.length===0){
-   tbody.innerHTML='<tr><td colspan="5">لا يوجد ضباط مسجلون.</td></tr>';
+   tbody.innerHTML='<tr><td colspan="6">لا يوجد ضباط مسجلون.</td></tr>';
    return;
   }
 
   tbody.innerHTML="";
+
   officers.forEach(officer=>{
    const tr=document.createElement("tr");
+
    const values=[
     officer.full_name,
     officer.username,
@@ -297,16 +307,100 @@ async function loadOfficers(){
     officer.role,
     officer.active?"نشط":"معطل"
    ];
+
    values.forEach((value,index)=>{
     const td=document.createElement("td");
     td.textContent=value??"-";
-    if(index===4&&officer.active)td.className="active-label";
+
+    if(index===4){
+     td.className=officer.active?"active-label":"disabled-label";
+    }
+
     tr.appendChild(td);
    });
+
+   const actions=document.createElement("td");
+
+   if(isAdmin()&&String(officer.role||"").toLowerCase()!=="admin"){
+    const statusButton=document.createElement("button");
+    statusButton.className="small-button";
+    statusButton.textContent=officer.active?"تعطيل":"تفعيل";
+
+    statusButton.addEventListener("click",async()=>{
+     const question=officer.active
+      ?"هل تريد تعطيل حساب "+officer.full_name+"؟"
+      :"هل تريد تفعيل حساب "+officer.full_name+"؟";
+
+     if(!confirm(question))return;
+
+     statusButton.disabled=true;
+
+     try{
+      const response=await fetch(
+       `/api/officers/${encodeURIComponent(officer.id)}/status`,
+       {
+        method:"PATCH",
+        headers:{"Content-Type":"application/json"},
+        credentials:"same-origin",
+        body:JSON.stringify({active:!officer.active})
+       }
+      );
+
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"تعذر تعديل الحساب");
+
+      await loadOfficers();
+     }catch(error){
+      alert(error.message);
+      statusButton.disabled=false;
+     }
+    });
+
+    const deleteButton=document.createElement("button");
+    deleteButton.className="delete-button";
+    deleteButton.textContent="حذف";
+
+    deleteButton.addEventListener("click",async()=>{
+     const confirmed=confirm(
+      "تحذير: هل أنت متأكد من حذف حساب "+officer.full_name+" نهائياً؟"
+     );
+
+     if(!confirmed)return;
+
+     deleteButton.disabled=true;
+
+     try{
+      const response=await fetch(
+       `/api/officers/${encodeURIComponent(officer.id)}`,
+       {
+        method:"DELETE",
+        credentials:"same-origin"
+       }
+      );
+
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"تعذر حذف الحساب");
+
+      alert("تم حذف حساب العميل بنجاح.");
+      await loadOfficers();
+     }catch(error){
+      alert(error.message);
+      deleteButton.disabled=false;
+     }
+    });
+
+    actions.appendChild(statusButton);
+    actions.appendChild(deleteButton);
+   }else{
+    actions.textContent="—";
+   }
+
+   tr.appendChild(actions);
    tbody.appendChild(tr);
   });
+
  }catch(error){
-  tbody.innerHTML='<tr><td colspan="5">تعذر تحميل البيانات.</td></tr>';
+  tbody.innerHTML='<tr><td colspan="6">تعذر تحميل البيانات.</td></tr>';
   message.style.color="#ff8585";
   message.textContent=error.message;
  }
@@ -326,18 +420,20 @@ function openSection(key){
   const admin=isAdmin();
   document.getElementById("adminOnly").classList.toggle("hidden",!admin);
   document.getElementById("officerAccessMessage").classList.toggle("hidden",admin);
-  document.getElementById("officerAccessMessage").textContent=admin?"":"عرض قائمة الضباط متاح، لكن إنشاء الحسابات يتطلب صلاحية المدير.";
+  document.getElementById("officerAccessMessage").textContent=admin?"":"عرض قائمة الضباط متاح، لكن إنشاء الحسابات وإدارة الحسابات يتطلب صلاحية المدير.";
 
   loadOfficers();
  }else{
   officersSection.classList.add("hidden");
   otherSection.classList.remove("hidden");
+
   const info=sectionInfo[key];
   if(info){
    document.getElementById("sectionTitle").textContent=info[0];
    document.getElementById("sectionDescription").textContent=info[1];
   }
  }
+
  sectionView.scrollIntoView({behavior:"smooth"});
 }
 
@@ -361,6 +457,7 @@ document.getElementById("officerForm").addEventListener("submit",async event=>{
 
  const button=document.getElementById("createOfficerButton");
  const message=document.getElementById("createMessage");
+
  button.disabled=true;
  button.textContent="جارٍ إنشاء الحساب...";
  message.textContent="";
