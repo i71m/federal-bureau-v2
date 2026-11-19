@@ -79,6 +79,10 @@ app.use("/api/officers", createOfficersRouter(pool));
 const createRelationshipsRouter = require("./routes/relationships");
 app.use("/api/relationships", createRelationshipsRouter(pool));
 
+// ملفات القضايا
+const createCasesRouter = require("./routes/cases");
+app.use("/api/cases", createCasesRouter(pool));
+
 // سجل العمليات - للمدير فقط
 app.get("/api/audit-logs", requireAdmin, async (req, res, next) => {
   try {
