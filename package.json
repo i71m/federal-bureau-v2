@@ -1,3 +1,4 @@
+
 {
   "name": "federal-bureau-v2",
   "version": "1.0.0",
@@ -5,7 +6,7 @@
   "description": "FEDERAL BUREAU Operations Portal",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node setup.js && node server.js"
   },
   "engines": {
     "node": ">=22"
