@@ -1,6 +1,8 @@
 
+-- =========================================
 -- FEDERAL BUREAU DATABASE
 -- PostgreSQL
+-- =========================================
 
 -- 1. الضباط وحساباتهم
 CREATE TABLE IF NOT EXISTS officers (
@@ -17,6 +19,7 @@ CREATE TABLE IF NOT EXISTS officers (
 CREATE UNIQUE INDEX IF NOT EXISTS officers_username_unique
 ON officers (LOWER(username));
 
+
 -- 2. المطلوبون
 CREATE TABLE IF NOT EXISTS wanted_persons (
     id BIGSERIAL PRIMARY KEY,
@@ -29,6 +32,7 @@ CREATE TABLE IF NOT EXISTS wanted_persons (
     created_by BIGINT REFERENCES officers(id),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
 
 -- 3. القضايا
 CREATE TABLE IF NOT EXISTS cases (
@@ -44,6 +48,7 @@ CREATE TABLE IF NOT EXISTS cases (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+
 -- 4. التقارير
 CREATE TABLE IF NOT EXISTS reports (
     id BIGSERIAL PRIMARY KEY,
@@ -54,6 +59,7 @@ CREATE TABLE IF NOT EXISTS reports (
     officer_id BIGINT REFERENCES officers(id),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
 
 -- 5. الأدلة
 CREATE TABLE IF NOT EXISTS evidence (
@@ -66,6 +72,7 @@ CREATE TABLE IF NOT EXISTS evidence (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+
 -- 6. شبكة العلاقات
 CREATE TABLE IF NOT EXISTS relationships (
     id BIGSERIAL PRIMARY KEY,
@@ -77,14 +84,16 @@ CREATE TABLE IF NOT EXISTS relationships (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+
 -- 7. سجل العمليات
 CREATE TABLE IF NOT EXISTS audit_logs (
     id BIGSERIAL PRIMARY KEY,
     officer_id BIGINT REFERENCES officers(id),
     action VARCHAR(150) NOT NULL,
     details TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
 
 -- 8. سجل تاريخ المطلوبين
 CREATE TABLE IF NOT EXISTS wanted_history (
@@ -97,6 +106,7 @@ CREATE TABLE IF NOT EXISTS wanted_history (
     details TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
 
 -- 9. صور المطلوبين
 CREATE TABLE IF NOT EXISTS wanted_images (
@@ -112,6 +122,7 @@ CREATE TABLE IF NOT EXISTS wanted_images (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+
 -- 10. السجل التاريخي للقضايا
 CREATE TABLE IF NOT EXISTS case_history (
     id BIGSERIAL PRIMARY KEY,
@@ -124,7 +135,11 @@ CREATE TABLE IF NOT EXISTS case_history (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- الفهارس
+
+-- =========================================
+-- INDEXES
+-- =========================================
+
 CREATE INDEX IF NOT EXISTS cases_status_idx
 ON cases(status);
 
