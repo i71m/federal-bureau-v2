@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -24,11 +25,14 @@ header span{font-size:12px;color:#aab5c8}
 .login h2{text-align:center;color:#d7b46a}
 input{width:100%;padding:13px;margin:9px 0;background:#091323;border:1px solid #34445b;border-radius:6px;color:white}
 button{width:100%;padding:13px;margin-top:12px;background:#b18a42;color:#101725;border:0;border-radius:6px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
 .note{text-align:center;color:#8491a5;font-size:12px;margin-top:15px}
+.message{text-align:center;font-size:13px;line-height:1.8;margin-top:15px}
 footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 </style>
 </head>
 <body>
+
 <header>
 <div class="brand">FEDERAL BUREAU</div>
 <span>SECURE OPERATIONS PORTAL</span>
@@ -41,32 +45,38 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 </section>
 
 <main class="container">
+
 <div class="grid">
 <div class="card">
 <div class="icon">◈</div>
 <h3>لوحة القيادة</h3>
 <p>مركز متابعة العمليات والإحصائيات الأمنية.</p>
 </div>
+
 <div class="card">
 <div class="icon">⌕</div>
 <h3>المطلوبون</h3>
 <p>إدارة ملفات المطلوبين وبيانات البحث.</p>
 </div>
+
 <div class="card">
 <div class="icon">▤</div>
 <h3>ملفات القضايا</h3>
 <p>تنظيم القضايا والتحقيقات والمعلومات المرتبطة بها.</p>
 </div>
+
 <div class="card">
 <div class="icon">▧</div>
 <h3>التقارير الأمنية</h3>
 <p>إنشاء التقارير ومراجعة سجلات العمليات.</p>
 </div>
+
 <div class="card">
 <div class="icon">♙</div>
 <h3>الأفراد والرتب</h3>
 <p>إدارة بيانات الضباط والرتب والصلاحيات.</p>
 </div>
+
 <div class="card">
 <div class="icon">⬡</div>
 <h3>الأدلة والمرفقات</h3>
@@ -76,15 +86,91 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 
 <div class="login">
 <h2>تسجيل دخول الضباط</h2>
-<input type="text" placeholder="اسم المستخدم" autocomplete="username">
-<input type="password" placeholder="كلمة المرور" autocomplete="current-password">
-<button type="button" onclick="alert('نظام تسجيل الدخول قيد التجهيز')">دخول النظام</button>
+
+<form id="loginForm">
+<input
+id="username"
+type="text"
+placeholder="اسم المستخدم"
+autocomplete="username"
+required
+>
+
+<input
+id="password"
+type="password"
+placeholder="كلمة المرور"
+autocomplete="current-password"
+required
+>
+
+<button id="loginButton" type="submit">دخول النظام</button>
+</form>
+
+<div id="message" class="message" role="status"></div>
 <div class="note">AUTHORIZED PERSONNEL ONLY</div>
 </div>
+
 </main>
 
 <footer>
 FEDERAL BUREAU © 2026 — ALL RIGHTS RESERVED
 </footer>
+
+<script>
+const form = document.getElementById("loginForm");
+const button = document.getElementById("loginButton");
+const message = document.getElementById("message");
+
+form.addEventListener("submit", async function(event) {
+  event.preventDefault();
+
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+
+  button.disabled = true;
+  button.textContent = "جارٍ التحقق...";
+  message.textContent = "";
+
+  try {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        response.status === 401
+          ? "اسم المستخدم أو كلمة المرور غير صحيحة."
+          : response.status === 403
+          ? "هذا الحساب غير مفعّل."
+          : data.error || "تعذر تسجيل الدخول."
+      );
+    }
+
+    message.style.color = "#83d6a8";
+    message.textContent =
+      "تم تسجيل الدخول بنجاح. مرحباً " +
+      (data.officer.full_name || data.officer.username);
+
+    form.reset();
+
+  } catch (error) {
+    message.style.color = "#ff8585";
+    message.textContent =
+      error.message || "تعذر الاتصال بالخادم.";
+  } finally {
+    button.disabled = false;
+    button.textContent = "دخول النظام";
+  }
+});
+</script>
+
 </body>
 </html>
