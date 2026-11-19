@@ -91,6 +91,10 @@ app.use("/api/wanted", createWantedRouter(pool));
 const createWantedHistoryRouter = require("./routes/wanted-history");
 app.use("/api/wanted-history", createWantedHistoryRouter(pool));
 
+// صور المطلوبين
+const createWantedImagesRouter = require("./routes/wanted-images");
+app.use("/api/wanted-images", createWantedImagesRouter(pool));
+
 // سجل العمليات - للمدير فقط
 app.get("/api/audit-logs", requireAdmin, async (req, res, next) => {
   try {
