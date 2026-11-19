@@ -633,38 +633,124 @@ async function loadWanted(){
   message.style.color="#ff8585";message.textContent=error.message;
  }
 }
+
+/* WANTED TABLE WITH DELETE BUTTON */
 function renderWantedTable(){
  const tbody=document.getElementById("wantedTable");
  const search=document.getElementById("wantedSearch").value.trim().toLowerCase();
+
  const filtered=wantedData.filter(person=>
-  [person.full_name,person.alias,person.charges,person.description].join(" ").toLowerCase().includes(search)
+  [person.full_name,person.alias,person.charges,person.description]
+   .join(" ").toLowerCase().includes(search)
  );
+
  tbody.innerHTML="";
- if(!filtered.length){tbody.innerHTML='<tr><td colspan="6">لا توجد نتائج مطابقة للبحث.</td></tr>';return;}
+
+ if(!filtered.length){
+  tbody.innerHTML='<tr><td colspan="6">لا توجد نتائج مطابقة للبحث.</td></tr>';
+  return;
+ }
+
  filtered.forEach(person=>{
   const tr=document.createElement("tr");
+
   [person.full_name||"—",person.alias||"—"].forEach(value=>{
-   const td=document.createElement("td");td.textContent=value;tr.appendChild(td);
+   const td=document.createElement("td");
+   td.textContent=value;
+   tr.appendChild(td);
   });
+
   const threat=document.createElement("td");
   threat.textContent=wantedThreatArabic(person.threat_level);
-  if(["Critical","High"].includes(person.threat_level))threat.className="case-urgent";
+  if(["Critical","High"].includes(person.threat_level)){
+   threat.className="case-urgent";
+  }
   tr.appendChild(threat);
+
   const status=document.createElement("td");
   const tag=document.createElement("span");
-  tag.className="case-status "+(person.status==="Active"?"case-urgent":person.status==="Arrested"?"case-open":"case-closed");
-  tag.textContent=wantedStatusArabic(person.status);status.appendChild(tag);tr.appendChild(status);
-  const charges=document.createElement("td");charges.textContent=person.charges||"—";tr.appendChild(charges);
+  tag.className="case-status "+(
+   person.status==="Active"?"case-urgent":
+   person.status==="Arrested"?"case-open":"case-closed"
+  );
+  tag.textContent=wantedStatusArabic(person.status);
+  status.appendChild(tag);
+  tr.appendChild(status);
+
+  const charges=document.createElement("td");
+  charges.textContent=person.charges||"—";
+  tr.appendChild(charges);
+
   const actions=document.createElement("td");
+
   const view=document.createElement("button");
-  view.className="view-button";view.textContent="عرض الملف";
+  view.className="view-button";
+  view.textContent="عرض الملف";
   view.onclick=()=>openWantedProfile(person.id);
+
   const edit=document.createElement("button");
-  edit.className="edit-button";edit.textContent="تعديل";
+  edit.className="edit-button";
+  edit.textContent="تعديل";
   edit.onclick=()=>editWanted(person.id);
-  actions.append(view,edit);tr.appendChild(actions);tbody.appendChild(tr);
+
+  actions.append(view,edit);
+
+  if(isAdmin()){
+   const deleteButton=document.createElement("button");
+   deleteButton.className="delete-button";
+   deleteButton.textContent="حذف";
+
+   deleteButton.onclick=async()=>{
+    const confirmed=confirm(
+     "تحذير: هل أنت متأكد من حذف ملف المطلوب؟\n\n"+
+     "سيتم حذف بيانات الملف وصوره وسجله التاريخي نهائيًا، ولا يمكن التراجع عن هذا الإجراء."
+    );
+
+    if(!confirmed)return;
+
+    deleteButton.disabled=true;
+    deleteButton.textContent="جارٍ الحذف...";
+
+    try{
+     const response=await fetch(
+      `/api/wanted/${encodeURIComponent(person.id)}`,
+      {
+       method:"DELETE",
+       credentials:"same-origin"
+      }
+     );
+
+     const data=await response.json();
+
+     if(!response.ok){
+      throw new Error(data.error||"تعذر حذف ملف المطلوب");
+     }
+
+     if(String(activeWantedProfileId)===String(person.id)){
+      closeWantedProfile();
+     }
+
+     const message=document.getElementById("wantedListMessage");
+     message.style.color="#83d6a8";
+     message.textContent=data.message||"تم حذف ملف المطلوب بنجاح.";
+
+     await loadWanted();
+
+    }catch(error){
+     alert(error.message);
+     deleteButton.disabled=false;
+     deleteButton.textContent="حذف";
+    }
+   };
+
+   actions.appendChild(deleteButton);
+  }
+
+  tr.appendChild(actions);
+  tbody.appendChild(tr);
  });
 }
+
 function resetWantedForm(){
  document.getElementById("wantedForm").reset();
  document.getElementById("editingWantedId").value="";
