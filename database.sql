@@ -2,7 +2,10 @@
 -- =========================================
 -- FEDERAL BUREAU DATABASE
 -- PostgreSQL
+-- Safe schema update
 -- =========================================
+
+BEGIN;
 
 -- 1. الضباط وحساباتهم
 CREATE TABLE IF NOT EXISTS officers (
@@ -123,7 +126,8 @@ CREATE TABLE IF NOT EXISTS wanted_images (
 );
 
 
--- 10. السجل التاريخي للقضايا
+-- 10. سجل تاريخ القضايا
+-- details موحد على JSONB
 CREATE TABLE IF NOT EXISTS case_history (
     id BIGSERIAL PRIMARY KEY,
     case_id BIGINT NOT NULL
@@ -131,9 +135,70 @@ CREATE TABLE IF NOT EXISTS case_history (
     officer_id BIGINT
         REFERENCES officers(id) ON DELETE SET NULL,
     action VARCHAR(50) NOT NULL,
-    details TEXT,
+    details JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+
+-- 11. ملاحظات القضايا
+CREATE TABLE IF NOT EXISTS case_notes (
+    id BIGSERIAL PRIMARY KEY,
+    case_id BIGINT NOT NULL
+        REFERENCES cases(id) ON DELETE CASCADE,
+    officer_id BIGINT
+        REFERENCES officers(id) ON DELETE SET NULL,
+    note TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
+-- =========================================
+-- SAFE MIGRATION
+-- تحويل case_history.details من TEXT إلى JSONB
+-- مع الاحتفاظ بمحتوى السجلات القديمة
+-- =========================================
+
+CREATE OR REPLACE FUNCTION pg_temp.safe_text_to_jsonb(input_text TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+BEGIN
+    IF input_text IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    BEGIN
+        RETURN input_text::JSONB;
+    EXCEPTION WHEN OTHERS THEN
+        RETURN TO_JSONB(input_text);
+    END;
+END;
+$$;
+
+
+DO $$
+DECLARE
+    column_type TEXT;
+BEGIN
+    SELECT data_type
+    INTO column_type
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'case_history'
+      AND column_name = 'details';
+
+    IF column_type = 'text' THEN
+        ALTER TABLE public.case_history
+        ALTER COLUMN details TYPE JSONB
+        USING pg_temp.safe_text_to_jsonb(details);
+
+    ELSIF column_type IS NULL THEN
+        RAISE EXCEPTION
+            'case_history.details column was not found';
+    END IF;
+END;
+$$;
 
 
 -- =========================================
@@ -158,30 +223,15 @@ ON wanted_history(wanted_id);
 CREATE INDEX IF NOT EXISTS wanted_images_wanted_id_idx
 ON wanted_images(wanted_id);
 
--- سجل تحديثات القضايا
-CREATE TABLE IF NOT EXISTS case_history (
-    id BIGSERIAL PRIMARY KEY,
-    case_id BIGINT NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
-    officer_id BIGINT REFERENCES officers(id) ON DELETE SET NULL,
-    action VARCHAR(50) NOT NULL,
-    details JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- ملاحظات القضايا
-CREATE TABLE IF NOT EXISTS case_notes (
-    id BIGSERIAL PRIMARY KEY,
-    case_id BIGINT NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
-    officer_id BIGINT REFERENCES officers(id) ON DELETE SET NULL,
-    note TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
 CREATE INDEX IF NOT EXISTS case_history_case_id_idx
 ON case_history(case_id);
 
 CREATE INDEX IF NOT EXISTS case_notes_case_id_idx
 ON case_notes(case_id);
 
-CREATE INDEX IF NOT EXISTS case_history_case_id_idx
-ON case_history(case_id);
+
+COMMIT;
+
+-- =========================================
+-- END OF DATABASE UPDATE
+-- =========================================
