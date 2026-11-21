@@ -112,7 +112,6 @@ async function requireActiveOfficer(req, res, next) {
       [req.session.officer.id]
     );
 
-    // الحساب غير موجود أو تم تعطيله
     if (
       result.rows.length === 0 ||
       result.rows[0].active !== true
@@ -134,7 +133,6 @@ async function requireActiveOfficer(req, res, next) {
 
     const officer = result.rows[0];
 
-    // تحديث بيانات الجلسة من قاعدة البيانات
     req.session.officer = {
       id: officer.id,
       username: officer.username,
@@ -151,8 +149,6 @@ async function requireActiveOfficer(req, res, next) {
   }
 }
 
-// تطبيق الحماية على جميع مسارات API التالية
-// باستثناء تسجيل الدخول والخروج وفحص الموقع
 app.use("/api", requireActiveOfficer);
 
 // =========================================
@@ -210,6 +206,18 @@ app.use("/api/cases", createCasesRouter(pool));
 const createCaseHistoryRouter = require("./routes/case-history");
 
 app.use("/api/case-history", createCaseHistoryRouter(pool));
+
+// =========================================
+// طلبات حذف القضايا وأرشيفها
+// =========================================
+
+const createCaseDeletionRequestsRouter =
+  require("./routes/case-deletion-requests");
+
+app.use(
+  "/api/case-deletion-requests",
+  createCaseDeletionRequestsRouter(pool)
+);
 
 // =========================================
 // المطلوبون
