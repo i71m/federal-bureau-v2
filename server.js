@@ -32,7 +32,10 @@ if (!process.env.DATABASE_URL || !process.env.SESSION_SECRET) {
   throw new Error("DATABASE_URL and SESSION_SECRET are required");
 }
 
+// =========================================
 // جلسات الضباط
+// =========================================
+
 app.use(session({
   name: "federal.sid",
   store: new PgSession({
@@ -50,16 +53,125 @@ app.use(session({
   }
 }));
 
-// التحقق من صلاحية المدير
-function requireAdmin(req, res, next) {
-  if (!req.session.officer) {
+// =========================================
+// تسجيل الدخول والخروج
+// =========================================
+
+const createAuthRouter = require("./routes/auth");
+
+app.use("/api/auth", createAuthRouter(pool));
+
+// =========================================
+// فحص الموقع وقاعدة البيانات
+// متاح دون تسجيل الدخول
+// =========================================
+
+app.get("/api/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+
+    res.json({
+      application: "FEDERAL BUREAU",
+      status: "running",
+      database: "connected"
+    });
+
+  } catch (error) {
+    res.status(503).json({
+      status: "error",
+      database: "disconnected"
+    });
+  }
+});
+
+// =========================================
+// الحماية المركزية لجميع مسارات API
+// =========================================
+
+async function requireActiveOfficer(req, res, next) {
+  if (!req.session || !req.session.officer) {
     return res.status(401).json({
+      success: false,
+      authenticated: false,
       error: "يجب تسجيل الدخول أولاً"
     });
   }
 
-  if (String(req.session.officer.role).toLowerCase() !== "admin") {
+  try {
+    const result = await pool.query(
+      `SELECT
+         id,
+         username,
+         full_name,
+         rank,
+         role,
+         active
+       FROM officers
+       WHERE id = $1
+       LIMIT 1`,
+      [req.session.officer.id]
+    );
+
+    // الحساب غير موجود أو تم تعطيله
+    if (
+      result.rows.length === 0 ||
+      result.rows[0].active !== true
+    ) {
+      return req.session.destroy((error) => {
+        if (error) {
+          console.error("Session destroy error:", error);
+        }
+
+        res.clearCookie("federal.sid");
+
+        return res.status(401).json({
+          success: false,
+          authenticated: false,
+          error: "الحساب موقوف أو غير موجود. يرجى تسجيل الدخول مجدداً."
+        });
+      });
+    }
+
+    const officer = result.rows[0];
+
+    // تحديث بيانات الجلسة من قاعدة البيانات
+    req.session.officer = {
+      id: officer.id,
+      username: officer.username,
+      fullName: officer.full_name,
+      rank: officer.rank,
+      role: officer.role
+    };
+
+    next();
+
+  } catch (error) {
+    console.error("Active officer check error:", error);
+    next(error);
+  }
+}
+
+// تطبيق الحماية على جميع مسارات API التالية
+// باستثناء تسجيل الدخول والخروج وفحص الموقع
+app.use("/api", requireActiveOfficer);
+
+// =========================================
+// التحقق من صلاحية المدير
+// =========================================
+
+function requireAdmin(req, res, next) {
+  if (!req.session || !req.session.officer) {
+    return res.status(401).json({
+      success: false,
+      error: "يجب تسجيل الدخول أولاً"
+    });
+  }
+
+  if (
+    String(req.session.officer.role).toLowerCase() !== "admin"
+  ) {
     return res.status(403).json({
+      success: false,
       error: "ليست لديك صلاحية عرض سجل العمليات"
     });
   }
@@ -67,39 +179,66 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// تسجيل الدخول والخروج
-const createAuthRouter = require("./routes/auth");
-app.use("/api/auth", createAuthRouter(pool));
-
+// =========================================
 // إدارة الضباط
+// =========================================
+
 const createOfficersRouter = require("./routes/officers");
+
 app.use("/api/officers", createOfficersRouter(pool));
 
+// =========================================
 // شبكة العلاقات
+// =========================================
+
 const createRelationshipsRouter = require("./routes/relationships");
+
 app.use("/api/relationships", createRelationshipsRouter(pool));
 
+// =========================================
 // ملفات القضايا
+// =========================================
+
 const createCasesRouter = require("./routes/cases");
+
 app.use("/api/cases", createCasesRouter(pool));
 
+// =========================================
 // سجل تاريخ القضايا
+// =========================================
+
 const createCaseHistoryRouter = require("./routes/case-history");
+
 app.use("/api/case-history", createCaseHistoryRouter(pool));
 
+// =========================================
 // المطلوبون
+// =========================================
+
 const createWantedRouter = require("./routes/wanted");
+
 app.use("/api/wanted", createWantedRouter(pool));
 
+// =========================================
 // سجل تاريخ المطلوبين
+// =========================================
+
 const createWantedHistoryRouter = require("./routes/wanted-history");
+
 app.use("/api/wanted-history", createWantedHistoryRouter(pool));
 
+// =========================================
 // صور المطلوبين
+// =========================================
+
 const createWantedImagesRouter = require("./routes/wanted-images");
+
 app.use("/api/wanted-images", createWantedImagesRouter(pool));
 
-// سجل العمليات - للمدير فقط
+// =========================================
+// سجل العمليات - المدير فقط
+// =========================================
+
 app.get("/api/audit-logs", requireAdmin, async (req, res, next) => {
   try {
     const result = await pool.query(
@@ -120,50 +259,59 @@ app.get("/api/audit-logs", requireAdmin, async (req, res, next) => {
       success: true,
       logs: result.rows
     });
+
   } catch (error) {
     next(error);
   }
 });
 
-// فحص الموقع وقاعدة البيانات
-app.get("/api/health", async (req, res) => {
-  try {
-    await pool.query("SELECT 1");
-
-    res.json({
-      application: "FEDERAL BUREAU",
-      status: "running",
-      database: "connected"
-    });
-  } catch (error) {
-    res.status(503).json({
-      status: "error",
-      database: "disconnected"
-    });
-  }
-});
-
+// =========================================
 // ملفات الموقع
+// =========================================
+
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(
+    path.join(__dirname, "public", "index.html")
+  );
 });
 
+// =========================================
+// 404
+// =========================================
+
 app.use((req, res) => {
-  res.status(404).json({ error: "Page not found" });
+  res.status(404).json({
+    error: "Page not found"
+  });
 });
+
+// =========================================
+// معالجة الأخطاء
+// =========================================
 
 app.use((error, req, res, next) => {
   console.error("Server error:", error.message);
-  res.status(500).json({ error: "Internal server error" });
+
+  res.status(500).json({
+    error: "Internal server error"
+  });
 });
+
+// =========================================
+// تشغيل السيرفر
+// =========================================
 
 const server = app.listen(PORT, () => {
   console.log(`FEDERAL BUREAU running on port ${PORT}`);
 });
 
-process.on("SIGTERM", async () => {
+// =========================================
+// إغلاق الاتصالات بأمان
+// =========================================
+
+process.on("SIGTERM", () => {
   server.close(async () => {
     await pool.end();
     process.exit(0);
