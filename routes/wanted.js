@@ -18,7 +18,127 @@ module.exports = function (pool) {
 
   // التحقق من رقم المطلوب
   function validId(id) {
-    return /^[1-9]\d*$/.test(id);
+    return /^[1-9]\d*$/.test(String(id));
+  }
+
+  // التحقق من الحقول النصية الاختيارية
+  function optionalText(value, maxLength) {
+    return value === undefined ||
+      value === null ||
+      (
+        typeof value === "string" &&
+        value.trim().length <= maxLength
+      );
+  }
+
+  // تنظيف الحقول النصية الاختيارية
+  function cleanText(value) {
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    const cleaned = value.trim();
+    return cleaned || null;
+  }
+
+  // التحقق من بيانات المطلوب
+  function validateWanted(body) {
+    const {
+      full_name,
+      alias,
+      description,
+      charges,
+      threat_level,
+      status
+    } = body || {};
+
+    if (
+      typeof full_name !== "string" ||
+      !full_name.trim() ||
+      full_name.trim().length > 150
+    ) {
+      return "اسم المطلوب مطلوب، ويجب ألا يتجاوز 150 حرفاً";
+    }
+
+    if (!optionalText(alias, 150)) {
+      return "الاسم المستعار يجب ألا يتجاوز 150 حرفاً";
+    }
+
+    if (!optionalText(description, 10000)) {
+      return "الوصف يجب ألا يتجاوز 10000 حرف";
+    }
+
+    if (!optionalText(charges, 5000)) {
+      return "التهم يجب ألا تتجاوز 5000 حرف";
+    }
+
+    const allowedThreatLevels = [
+      "Low",
+      "Medium",
+      "High",
+      "Critical",
+      "Unknown"
+    ];
+
+    const allowedStatuses = [
+      "Active",
+      "Wanted",
+      "Arrested",
+      "Cleared"
+    ];
+
+    if (
+      threat_level !== undefined &&
+      threat_level !== null &&
+      !allowedThreatLevels.includes(threat_level)
+    ) {
+      return "مستوى الخطورة غير صالح";
+    }
+
+    if (
+      status !== undefined &&
+      status !== null &&
+      !allowedStatuses.includes(status)
+    ) {
+      return "حالة المطلوب غير صالحة";
+    }
+
+    return null;
+  }
+
+  // القيم الافتراضية بعد التحقق
+  function wantedValues(body) {
+    return [
+      body.full_name.trim(),
+      cleanText(body.alias),
+      cleanText(body.description),
+      cleanText(body.charges),
+      body.threat_level || "Medium",
+      body.status || "Active"
+    ];
+  }
+
+  // تسجيل عملية في السجل العام
+  async function addAuditLog(client, officerId, action, details) {
+    await client.query(
+      `INSERT INTO audit_logs
+       (officer_id, action, details)
+       VALUES ($1, $2, $3)`,
+      [
+        officerId,
+        action,
+        JSON.stringify(details)
+      ]
+    );
+  }
+
+  // تنفيذ المعاملات مع معالجة آمنة للأخطاء
+  async function rollback(client) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (error) {
+      console.error("Wanted ROLLBACK error:", error.message);
+    }
   }
 
   // عرض جميع المطلوبين
@@ -33,7 +153,7 @@ module.exports = function (pool) {
         ORDER BY w.created_at DESC
       `);
 
-      res.json({
+      return res.json({
         success: true,
         wanted: result.rows
       });
@@ -41,59 +161,48 @@ module.exports = function (pool) {
     } catch (error) {
       console.error("Wanted GET error:", error);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: "تعذر تحميل قائمة المطلوبين"
       });
     }
   });
 
-  // إضافة مطلوب جديد مع تسجيل الحدث
+  // إضافة مطلوب جديد
   router.post("/", requireLogin, async (req, res) => {
-    const client = await pool.connect();
+    const validationError = validateWanted(req.body);
+
+    if (validationError) {
+      return res.status(400).json({
+        success: false,
+        error: validationError
+      });
+    }
+
+    let client;
 
     try {
-      const {
-        full_name,
-        alias,
-        description,
-        charges,
-        threat_level,
-        status
-      } = req.body;
+      client = await pool.connect();
 
-      if (
-        typeof full_name !== "string" ||
-        !full_name.trim()
-      ) {
-        return res.status(400).json({
-          success: false,
-          error: "اسم المطلوب مطلوب"
-        });
-      }
+      const values = wantedValues(req.body);
 
       await client.query("BEGIN");
 
       const result = await client.query(
         `INSERT INTO wanted_persons
-        (
-          full_name,
-          alias,
-          description,
-          charges,
-          threat_level,
-          status,
-          created_by
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING *`,
+         (
+           full_name,
+           alias,
+           description,
+           charges,
+           threat_level,
+           status,
+           created_by
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
         [
-          full_name.trim(),
-          alias || null,
-          description || null,
-          charges || null,
-          threat_level || "Medium",
-          status || "Active",
+          ...values,
           req.session.officer.id
         ]
       );
@@ -102,8 +211,8 @@ module.exports = function (pool) {
 
       await client.query(
         `INSERT INTO wanted_history
-        (wanted_id, officer_id, action, details)
-        VALUES ($1, $2, $3, $4)`,
+         (wanted_id, officer_id, action, details)
+         VALUES ($1, $2, $3, $4)`,
         [
           wanted.id,
           req.session.officer.id,
@@ -118,61 +227,65 @@ module.exports = function (pool) {
         ]
       );
 
+      await addAuditLog(
+        client,
+        req.session.officer.id,
+        "CREATE_WANTED",
+        {
+          message: "تم تسجيل مطلوب جديد",
+          wanted_id: wanted.id,
+          full_name: wanted.full_name,
+          alias: wanted.alias
+        }
+      );
+
       await client.query("COMMIT");
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: "تم تسجيل المطلوب وحفظ الحدث في سجله",
         wanted
       });
 
     } catch (error) {
-      await client.query("ROLLBACK");
+      if (client) await rollback(client);
 
       console.error("Wanted POST error:", error);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: "تعذر تسجيل المطلوب"
       });
 
     } finally {
-      client.release();
+      if (client) client.release();
     }
   });
 
-  // تعديل بيانات مطلوب مع تسجيل التغييرات
+  // تعديل بيانات مطلوب
   router.patch("/:id", requireLogin, async (req, res) => {
-    const client = await pool.connect();
+    const { id } = req.params;
+
+    if (!validId(id)) {
+      return res.status(400).json({
+        success: false,
+        error: "رقم المطلوب غير صالح"
+      });
+    }
+
+    const validationError = validateWanted(req.body);
+
+    if (validationError) {
+      return res.status(400).json({
+        success: false,
+        error: validationError
+      });
+    }
+
+    let client;
 
     try {
-      const { id } = req.params;
-
-      const {
-        full_name,
-        alias,
-        description,
-        charges,
-        threat_level,
-        status
-      } = req.body;
-
-      if (!validId(id)) {
-        return res.status(400).json({
-          success: false,
-          error: "رقم المطلوب غير صالح"
-        });
-      }
-
-      if (
-        typeof full_name !== "string" ||
-        !full_name.trim()
-      ) {
-        return res.status(400).json({
-          success: false,
-          error: "اسم المطلوب مطلوب"
-        });
-      }
+      client = await pool.connect();
 
       await client.query("BEGIN");
 
@@ -194,6 +307,7 @@ module.exports = function (pool) {
       }
 
       const oldWanted = oldResult.rows[0];
+      const values = wantedValues(req.body);
 
       const result = await client.query(
         `UPDATE wanted_persons
@@ -205,15 +319,7 @@ module.exports = function (pool) {
              status = $6
          WHERE id = $7
          RETURNING *`,
-        [
-          full_name.trim(),
-          alias || null,
-          description || null,
-          charges || null,
-          threat_level || "Medium",
-          status || "Active",
-          id
-        ]
+        [...values, id]
       );
 
       const updatedWanted = result.rows[0];
@@ -241,16 +347,16 @@ module.exports = function (pool) {
         }
       }
 
-      const action =
-        oldWanted.status !== updatedWanted.status
-          ? "STATUS_CHANGE"
-          : "UPDATE";
-
       if (Object.keys(changes).length > 0) {
+        const action =
+          oldWanted.status !== updatedWanted.status
+            ? "STATUS_CHANGE"
+            : "UPDATE";
+
         await client.query(
           `INSERT INTO wanted_history
-          (wanted_id, officer_id, action, details)
-          VALUES ($1, $2, $3, $4)`,
+           (wanted_id, officer_id, action, details)
+           VALUES ($1, $2, $3, $4)`,
           [
             id,
             req.session.officer.id,
@@ -261,28 +367,40 @@ module.exports = function (pool) {
             })
           ]
         );
+
+        await addAuditLog(
+          client,
+          req.session.officer.id,
+          "UPDATE_WANTED",
+          {
+            message: "تم تحديث بيانات مطلوب",
+            wanted_id: updatedWanted.id,
+            full_name: updatedWanted.full_name,
+            changes
+          }
+        );
       }
 
       await client.query("COMMIT");
 
-      res.json({
+      return res.json({
         success: true,
         message: "تم تحديث بيانات المطلوب وحفظ سجل التغييرات",
         wanted: updatedWanted
       });
 
     } catch (error) {
-      await client.query("ROLLBACK");
+      if (client) await rollback(client);
 
       console.error("Wanted PATCH error:", error);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: "تعذر تحديث بيانات المطلوب"
       });
 
     } finally {
-      client.release();
+      if (client) client.release();
     }
   });
 
@@ -307,9 +425,11 @@ module.exports = function (pool) {
       });
     }
 
-    const client = await pool.connect();
+    let client;
 
     try {
+      client = await pool.connect();
+
       await client.query("BEGIN");
 
       const result = await client.query(
@@ -331,7 +451,6 @@ module.exports = function (pool) {
 
       const wanted = result.rows[0];
 
-      // حذف الصور والسجل التاريخي المرتبطين بالملف
       await client.query(
         "DELETE FROM wanted_images WHERE wanted_id = $1",
         [id]
@@ -342,48 +461,42 @@ module.exports = function (pool) {
         [id]
       );
 
-      // حذف ملف المطلوب نهائياً
       await client.query(
         "DELETE FROM wanted_persons WHERE id = $1",
         [id]
       );
 
-      // الاحتفاظ بأثر عملية الحذف في سجل العمليات العام
-      await client.query(
-        `INSERT INTO audit_logs
-        (officer_id, action, details)
-        VALUES ($1, $2, $3)`,
-        [
-          req.session.officer.id,
-          "DELETE_WANTED",
-          JSON.stringify({
-            message: "تم حذف ملف مطلوب نهائياً",
-            wanted_id: wanted.id,
-            full_name: wanted.full_name,
-            alias: wanted.alias
-          })
-        ]
+      await addAuditLog(
+        client,
+        req.session.officer.id,
+        "DELETE_WANTED",
+        {
+          message: "تم حذف ملف مطلوب نهائياً",
+          wanted_id: wanted.id,
+          full_name: wanted.full_name,
+          alias: wanted.alias
+        }
       );
 
       await client.query("COMMIT");
 
-      res.json({
+      return res.json({
         success: true,
         message: "تم حذف ملف المطلوب وصوره وسجله التاريخي نهائياً"
       });
 
     } catch (error) {
-      await client.query("ROLLBACK");
+      if (client) await rollback(client);
 
       console.error("Wanted DELETE error:", error);
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: "تعذر حذف ملف المطلوب"
       });
 
     } finally {
-      client.release();
+      if (client) client.release();
     }
   });
 
