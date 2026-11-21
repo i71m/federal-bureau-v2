@@ -304,21 +304,20 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
 
    <div id="casesSection" class="hidden">
     <!-- قائمة القضايا -->
-    <div id="casesListArea">
-     <h2>مركز إدارة القضايا</h2>
-     <p>إنشاء ملفات القضايا ومتابعة حالتها وأولويتها والضباط المكلّفين بها.</p>
-     <div class="grid">
-      <div class="network-stat">إجمالي القضايا<strong id="casesTotal">0</strong></div>
-      <div class="network-stat">القضايا المفتوحة<strong id="casesOpen">0</strong></div>
-      <div class="network-stat">القضايا المغلقة<strong id="casesClosed">0</strong></div>
-     </div>
-     <div class="panel">
-      <h3 id="caseFormTitle">إنشاء قضية جديدة</h3>
-      <form id="caseForm">
-       <input type="hidden" id="editingCaseId">
-       <div class="form-grid">
-        <input id="caseTitle" placeholder="عنوان القضية" maxlength="200" required>
-        <select id="caseStatus" required>
+ <div id="casesListArea">
+ <h2>مركز إدارة القضايا</h2>
+ <p>إنشاء ملفات القضايا ومتابعة حالتها وأولويتها والضباط المكلّفين بها.</p>
+ <div class="grid">
+ <div class="network-stat">إجمالي القضايا<strong id="casesTotal">0</strong></div>
+ <div class="network-stat">القضايا المفتوحة<strong id="casesOpen">0</strong></div>
+<div class="network-stat">القضايا المغلقة<strong id="casesClosed">0</strong></div>
+</div>
+ <div class="panel">
+ <h3 id="caseFormTitle">إنشاء قضية جديدة</h3>
+ <form id="caseForm">
+<input type="hidden" id="editingCaseId">
+<div class="form-grid">
+ <select id="caseStatus" required>
          <option value="Open">مفتوحة</option><option value="In Progress">قيد التحقيق</option>
          <option value="Under Review">قيد المراجعة</option><option value="Closed">مغلقة</option>
         </select>
@@ -465,8 +464,24 @@ footer{text-align:center;padding:30px;color:#69788e;font-size:12px}
    </div>
 
    <div id="otherSection" class="hidden">
-    <h2 id="sectionTitle"></h2>
-    <p id="sectionDescription"></p>
+    <div id="generalSection">
+     <h2 id="sectionTitle"></h2>
+     <p id="sectionDescription"></p>
+    </div>
+    <div id="auditSection" class="hidden">
+     <h2>سجل العمليات</h2>
+     <p>مراجعة العمليات التي نُفذت داخل النظام ومعرفة المسؤول عنها.</p>
+     <div class="toolbar">
+      <button class="primary" id="refreshAudit">تحديث السجل</button>
+     </div>
+     <div id="auditMessage" class="message"></div>
+     <div class="table-wrap">
+      <table>
+       <thead><tr><th>رقم العملية</th><th>نوع العملية</th><th>التفاصيل</th><th>المستخدم</th><th>التاريخ</th></tr></thead>
+       <tbody id="auditTable"><tr><td colspan="5">لم يتم تحميل السجل بعد.</td></tr></tbody>
+      </table>
+     </div>
+    </div>
    </div>
    <button class="primary full" id="backButton">العودة إلى لوحة القيادة</button>
   </section>
@@ -507,7 +522,8 @@ const sectionInfo={
  permissions:["الصلاحيات","إدارة الصلاحيات المتقدمة ستكون ضمن تطوير لاحق."],
  audit:["سجل العمليات","يمكن للمدير مراجعة سجل العمليات من خلال مسار النظام الحالي."]
 };
-  function isAdmin(){
+
+function isAdmin(){
  return currentOfficer&&String(currentOfficer.role||"").toLowerCase()==="admin";
 }
 function showLogin(){
@@ -517,6 +533,8 @@ function showLogin(){
 }
 function showDashboard(officer){
  currentOfficer=officer;
+ const auditCard=document.querySelector('[data-section="audit"]');
+ if(auditCard)auditCard.classList.toggle("hidden",!isAdmin());
  loginPage.classList.add("hidden");
  dashboardPage.classList.remove("hidden");
  document.getElementById("officerName").textContent=officer.full_name||officer.username;
@@ -617,8 +635,9 @@ async function loadOfficers(){
       const res=await fetch(`/api/officers/${encodeURIComponent(officer.id)}`,{method:"DELETE",credentials:"same-origin"});
       const result=await res.json();
       if(!res.ok)throw new Error(result.error||"تعذر حذف الحساب");
-      loadOfficers();
-     }catch(error){alert(error.message);}
+      loadOfficers(); 
+
+          }catch(error){alert(error.message);}
     };
     actions.append(statusButton,deleteButton);
    }else actions.textContent="—";
@@ -938,7 +957,7 @@ function closeImageLightbox(){
  document.getElementById("lightboxImage").src="";
 }
 document.getElementById("closeLightbox").addEventListener("click",closeImageLightbox);
-document.getElementById("imageLightbox").addEventListener("click",event=>{if(event.target.id==="imageLightbox")closeImageLightbox();});
+ document.getElementById("imageLightbox").addEventListener("click",event=>{if(event.target.id==="imageLightbox")closeImageLightbox();});
 document.addEventListener("keydown",event=>{if(event.key==="Escape")closeImageLightbox();});
 
 /* CASE MANAGEMENT */
@@ -1258,7 +1277,7 @@ function buildNetwork(relations){
  const edges=relations.map((r,index)=>({
   id:r.id??index,from:String(r.person_one).trim(),to:String(r.person_two).trim(),
   label:r.relationship_type||"علاقة",title:r.notes||r.relationship_type||"علاقة",
-  color:{color:"#647c9c",highlight:"#d7b46a",hover:"#d7b46a"},
+    color:{color:"#647c9c",highlight:"#d7b46a",hover:"#d7b46a"},
   font:{color:"#c5d0df",size:11,background:"#101c30",strokeWidth:0},width:2,smooth:{type:"dynamic"}
  }));
  networkNodes=new vis.DataSet(nodes);networkEdges=new vis.DataSet(edges);
@@ -1391,6 +1410,92 @@ document.getElementById("resetNetwork").addEventListener("click",()=>{
  if(networkNodes)networkNodes.forEach(node=>networkNodes.update({id:node.id,color:{background:"#b18a42",border:"#f0d18c"}}));
 });
 
+/* AUDIT LOGS */
+function auditActionArabic(action){
+ const labels={
+  CREATE_OFFICER:"إنشاء حساب ضابط",
+  ACTIVATE_OFFICER:"تفعيل حساب ضابط",
+  DISABLE_OFFICER:"تعطيل حساب ضابط",
+  DELETE_OFFICER:"حذف حساب ضابط",
+  CREATE_WANTED:"إنشاء ملف مطلوب",
+  UPDATE_WANTED:"تعديل ملف مطلوب",
+  DELETE_WANTED:"حذف ملف مطلوب",
+  UPLOAD_WANTED_IMAGE:"رفع صورة لمطلوب",
+  CREATE_RELATIONSHIP:"إضافة علاقة",
+  DELETE_RELATIONSHIP:"حذف علاقة",
+  CREATE_CASE:"إنشاء قضية",
+  UPDATE_CASE:"تعديل قضية",
+  DELETE_CASE:"حذف قضية"
+ };
+ return labels[action]||action||"عملية غير محددة";
+}
+function auditDetailsText(details){
+ if(!details)return "—";
+ if(typeof details==="string"){
+  try{details=JSON.parse(details);}
+  catch{return details;}
+ }
+ if(typeof details!=="object")return String(details);
+ const labels={
+  wanted_id:"رقم ملف المطلوب",image_id:"رقم الصورة",filename:"اسم الملف",
+  image_name:"اسم الصورة",mimetype:"نوع الملف",mime_type:"نوع الملف",
+  size:"حجم الملف",full_name:"الاسم الكامل",username:"اسم المستخدم",
+  rank:"الرتبة",status:"الحالة",threat_level:"مستوى الخطورة",
+  person_one:"الشخص الأول",person_two:"الشخص الثاني",
+  relationship_type:"نوع العلاقة",case_number:"رقم القضية",title:"العنوان",
+  before:"قبل التعديل",after:"بعد التعديل",officer_id:"رقم الضابط"
+ };
+ return Object.entries(details).map(([key,value])=>{
+  if(value&&typeof value==="object")value=JSON.stringify(value,null,2);
+  return `${labels[key]||key}: ${value??"—"}`;
+ }).join("\n");
+}
+async function loadAuditLogs(){
+ const tbody=document.getElementById("auditTable");
+ const message=document.getElementById("auditMessage");
+ if(!tbody||!message)return;
+ if(!isAdmin()){
+  tbody.textContent="";
+  const tr=document.createElement("tr");
+  const td=document.createElement("td");
+  td.colSpan=5;
+  td.textContent="عرض سجل العمليات يتطلب صلاحية المدير.";
+  tr.appendChild(td);tbody.appendChild(tr);
+  return;
+ }
+ tbody.innerHTML='<tr><td colspan="5">جارٍ تحميل السجل...</td></tr>';
+ message.textContent="";
+ try{
+  const response=await fetch("/api/audit-logs",{credentials:"same-origin"});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||"تعذر تحميل سجل العمليات");
+  if(!data.success||!Array.isArray(data.logs))throw new Error("استجابة سجل العمليات غير متوقعة");
+  tbody.textContent="";
+  if(!data.logs.length){
+   const tr=document.createElement("tr"),td=document.createElement("td");
+   td.colSpan=5;td.textContent="لا توجد عمليات مسجلة.";tr.appendChild(td);tbody.appendChild(tr);
+   return;
+  }
+  data.logs.forEach(log=>{
+   const tr=document.createElement("tr");
+   const values=[log.id,auditActionArabic(log.action),auditDetailsText(log.details),log.admin_name||log.admin_username||"—",formatDate(log.created_at)];
+   values.forEach(value=>{
+    const td=document.createElement("td");
+    td.textContent=value??"—";
+    td.style.whiteSpace="pre-wrap";
+    tr.appendChild(td);
+   });
+   tbody.appendChild(tr);
+  });
+ }catch(error){
+  tbody.textContent="";
+  const tr=document.createElement("tr"),td=document.createElement("td");
+  td.colSpan=5;td.textContent="تعذر تحميل السجل.";tr.appendChild(td);tbody.appendChild(tr);
+  message.style.color="#ff8585";message.textContent=error.message;
+ }
+}
+document.getElementById("refreshAudit").addEventListener("click",loadAuditLogs);
+
 /* NAVIGATION */
 function openSection(key){
  const sectionView=document.getElementById("sectionView");
@@ -1412,8 +1517,22 @@ function openSection(key){
   document.getElementById("casesSection").classList.remove("hidden");resetCaseForm();loadCases();
  }else if(key==="wanted"){
   document.getElementById("wantedSection").classList.remove("hidden");resetWantedForm();loadWanted();
+ }else if(key==="audit"){
+  document.getElementById("otherSection").classList.remove("hidden");
+  if(!isAdmin()){
+   document.getElementById("generalSection").classList.remove("hidden");
+   document.getElementById("auditSection").classList.add("hidden");
+   document.getElementById("sectionTitle").textContent="غير مصرح";
+   document.getElementById("sectionDescription").textContent="عرض سجل العمليات يتطلب صلاحية المدير.";
+  }else{
+   document.getElementById("generalSection").classList.add("hidden");
+   document.getElementById("auditSection").classList.remove("hidden");
+   loadAuditLogs();
+  }
  }else{
   document.getElementById("otherSection").classList.remove("hidden");
+  document.getElementById("generalSection").classList.remove("hidden");
+  document.getElementById("auditSection").classList.add("hidden");
   const info=sectionInfo[key];
   if(info){document.getElementById("sectionTitle").textContent=info[0];document.getElementById("sectionDescription").textContent=info[1];}
  }
