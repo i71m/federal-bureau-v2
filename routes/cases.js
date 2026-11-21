@@ -1,7 +1,7 @@
 
 const express = require("express");
 const crypto = require("crypto");
-
+const { authorize, isDirector } = require("../middleware/permissions");
 module.exports = function (pool) {
   const router = express.Router();
 
@@ -115,7 +115,7 @@ module.exports = function (pool) {
   });
 
   // إنشاء قضية جديدة
-  router.post("/", requireLogin, async (req, res, next) => {
+  router.post("/", requireLogin, authorize("Agent 9"), async (req, res, next) => {
     let db;
     let transactionStarted = false;
 
@@ -270,7 +270,7 @@ module.exports = function (pool) {
   });
 
   // تعديل قضية
-  router.patch("/:id", requireLogin, async (req, res, next) => {
+  router.patch("/:id", requireLogin, authorize("Agent 8"), async (req, res, next) => {
     if (!validCaseId(req.params.id)) {
       return res.status(400).json({
         error: "رقم القضية غير صالح"
@@ -520,8 +520,14 @@ module.exports = function (pool) {
   });
 
   // حذف قضية
-  // متاح لجميع الضباط المسجلين
-  router.delete("/:id", requireLogin, async (req, res, next) => {
+  router.delete("/:id", requireLogin, (req, res, next) => {
+  if (!isDirector(req.session.officer)) {
+    return res.status(403).json({
+      error: "الحذف المباشر للقضايا متاح للمدير العام فقط."
+    });
+  }
+  next();
+}, async (req, res, next) => {
     if (!validCaseId(req.params.id)) {
       return res.status(400).json({
         error: "رقم القضية غير صالح"
