@@ -38,7 +38,44 @@ async function setup() {
     `);
 
     console.log("Wanted history table verified successfully.");
+    // إنشاء نظام أرشفة القضايا وطلبات الحذف دون فقدان السجلات
+    await pool.query(`
+      ALTER TABLE cases
+      ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
 
+      ALTER TABLE cases
+      ADD COLUMN IF NOT EXISTS archived_by BIGINT
+      REFERENCES officers(id) ON DELETE SET NULL;
+
+      ALTER TABLE cases
+      ADD COLUMN IF NOT EXISTS archive_reason TEXT;
+
+      CREATE TABLE IF NOT EXISTS case_deletion_requests (
+        id BIGSERIAL PRIMARY KEY,
+        case_id BIGINT NOT NULL
+          REFERENCES cases(id) ON DELETE RESTRICT,
+        requested_by BIGINT
+          REFERENCES officers(id) ON DELETE SET NULL,
+        reason TEXT NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending'
+          CHECK (status IN ('pending', 'approved', 'rejected')),
+        reviewed_by BIGINT
+          REFERENCES officers(id) ON DELETE SET NULL,
+        reviewed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE UNIQUE INDEX IF NOT EXISTS
+        unique_pending_case_deletion
+      ON case_deletion_requests(case_id)
+      WHERE status = 'pending';
+
+      CREATE INDEX IF NOT EXISTS
+        idx_case_deletion_requests_status
+      ON case_deletion_requests(status);
+    `);
+
+    console.log("Case archive and deletion requests tables verified successfully.");
     const username = process.env.BOOTSTRAP_ADMIN_USERNAME;
     const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
     const fullName = process.env.BOOTSTRAP_ADMIN_NAME;
