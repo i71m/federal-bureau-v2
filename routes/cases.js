@@ -2,6 +2,7 @@
 const express = require("express");
 const crypto = require("crypto");
 const { authorize, isDirector } = require("../middleware/permissions");
+
 module.exports = function (pool) {
   const router = express.Router();
 
@@ -12,7 +13,6 @@ module.exports = function (pool) {
         error: "يجب تسجيل الدخول أولاً"
       });
     }
-
     next();
   }
 
@@ -44,15 +44,12 @@ module.exports = function (pool) {
   function generateCaseNumber() {
     const year = new Date().getFullYear();
     const code = crypto.randomBytes(3).toString("hex").toUpperCase();
-
     return `FB-${year}-${code}`;
   }
 
   // التحقق من الضابط المكلّف
   async function validateAssignedOfficer(db, assignedId) {
-    if (assignedId === null) {
-      return true;
-    }
+    if (assignedId === null) return true;
 
     const result = await db.query(
       "SELECT id FROM officers WHERE id = $1 AND active = TRUE",
@@ -62,7 +59,7 @@ module.exports = function (pool) {
     return result.rows.length > 0;
   }
 
-  // عرض جميع القضايا
+  // عرض القضايا غير المؤرشفة فقط
   router.get("/", requireLogin, async (req, res, next) => {
     try {
       const result = await pool.query(`
@@ -73,6 +70,7 @@ module.exports = function (pool) {
         FROM cases c
         LEFT JOIN officers assigned ON assigned.id = c.assigned_to
         LEFT JOIN officers creator ON creator.id = c.created_by
+        WHERE c.archived_at IS NULL
         ORDER BY c.created_at DESC
       `);
 
@@ -82,7 +80,7 @@ module.exports = function (pool) {
     }
   });
 
-  // عرض قضية محددة
+  // عرض قضية محددة غير مؤرشفة
   router.get("/:id", requireLogin, async (req, res, next) => {
     if (!validCaseId(req.params.id)) {
       return res.status(400).json({
@@ -100,6 +98,7 @@ module.exports = function (pool) {
         LEFT JOIN officers assigned ON assigned.id = c.assigned_to
         LEFT JOIN officers creator ON creator.id = c.created_by
         WHERE c.id = $1
+          AND c.archived_at IS NULL
       `, [req.params.id]);
 
       if (result.rows.length === 0) {
@@ -259,17 +258,13 @@ module.exports = function (pool) {
       if (db && transactionStarted) {
         await db.query("ROLLBACK").catch(() => {});
       }
-
       next(error);
-
     } finally {
-      if (db) {
-        db.release();
-      }
+      if (db) db.release();
     }
   });
 
-  // تعديل قضية
+  // تعديل قضية غير مؤرشفة
   router.patch("/:id", requireLogin, authorize("Agent 8"), async (req, res, next) => {
     if (!validCaseId(req.params.id)) {
       return res.status(400).json({
@@ -312,10 +307,7 @@ module.exports = function (pool) {
       }
 
       if (description !== undefined) {
-        if (
-          description !== null &&
-          typeof description !== "string"
-        ) {
+        if (description !== null && typeof description !== "string") {
           return res.status(400).json({
             error: "وصف القضية غير صالح"
           });
@@ -365,10 +357,8 @@ module.exports = function (pool) {
         values.push(priority.trim());
       }
 
-      let assignedId;
-
       if (assigned_to !== undefined) {
-        assignedId =
+        const assignedId =
           assigned_to === "" || assigned_to === null
             ? null
             : Number(assigned_to);
@@ -401,9 +391,10 @@ module.exports = function (pool) {
       await db.query("BEGIN");
       transactionStarted = true;
 
-      // جلب البيانات القديمة وقفل السجل أثناء التعديل
       const oldResult = await db.query(
-        "SELECT * FROM cases WHERE id = $1 FOR UPDATE",
+        `SELECT * FROM cases
+         WHERE id = $1 AND archived_at IS NULL
+         FOR UPDATE`,
         [req.params.id]
       );
 
@@ -412,7 +403,7 @@ module.exports = function (pool) {
         transactionStarted = false;
 
         return res.status(404).json({
-          error: "القضية غير موجودة"
+          error: "القضية غير موجودة أو مؤرشفة"
         });
       }
 
@@ -424,20 +415,23 @@ module.exports = function (pool) {
         `UPDATE cases
          SET ${fields.join(", ")}, updated_at = NOW()
          WHERE id = $${index}
+           AND archived_at IS NULL
          RETURNING *`,
         values
       );
 
+      if (result.rows.length === 0) {
+        await db.query("ROLLBACK");
+        transactionStarted = false;
+
+        return res.status(404).json({
+          error: "القضية غير موجودة أو مؤرشفة"
+        });
+      }
+
       const updatedCase = result.rows[0];
 
-      // مقارنة الحقول العامة
-      const fieldsToCompare = [
-        "title",
-        "description",
-        "priority"
-      ];
-
-      fieldsToCompare.forEach(key => {
+      ["title", "description", "priority"].forEach(key => {
         if (oldCase[key] !== updatedCase[key]) {
           changes[key] = {
             before: oldCase[key],
@@ -456,7 +450,6 @@ module.exports = function (pool) {
         );
       }
 
-      // تسجيل تغيير الحالة
       if (oldCase.status !== updatedCase.status) {
         await addCaseHistory(
           db,
@@ -470,7 +463,6 @@ module.exports = function (pool) {
         );
       }
 
-      // تسجيل تغيير الضابط المكلّف
       if (
         String(oldCase.assigned_to ?? "") !==
         String(updatedCase.assigned_to ?? "")
@@ -509,25 +501,22 @@ module.exports = function (pool) {
       if (db && transactionStarted) {
         await db.query("ROLLBACK").catch(() => {});
       }
-
       next(error);
-
     } finally {
-      if (db) {
-        db.release();
-      }
+      if (db) db.release();
     }
   });
 
-  // حذف قضية
+  // أرشفة قضية مباشرة - المدير العام فقط
+  // لا يتم حذف سجل القضية أو ملاحظاتها أو أدلتها
   router.delete("/:id", requireLogin, (req, res, next) => {
-  if (!isDirector(req.session.officer)) {
-    return res.status(403).json({
-      error: "الحذف المباشر للقضايا متاح للمدير العام فقط."
-    });
-  }
-  next();
-}, async (req, res, next) => {
+    if (!isDirector(req.session.officer)) {
+      return res.status(403).json({
+        error: "الأرشفة المباشرة للقضايا متاحة للمدير العام فقط."
+      });
+    }
+    next();
+  }, async (req, res, next) => {
     if (!validCaseId(req.params.id)) {
       return res.status(400).json({
         error: "رقم القضية غير صالح"
@@ -544,10 +533,19 @@ module.exports = function (pool) {
       transactionStarted = true;
 
       const result = await db.query(
-        `DELETE FROM cases
+        `UPDATE cases
+         SET archived_at = NOW(),
+             archived_by = $2,
+             archive_reason = $3,
+             updated_at = NOW()
          WHERE id = $1
+           AND archived_at IS NULL
          RETURNING id, case_number, title`,
-        [req.params.id]
+        [
+          req.params.id,
+          req.session.officer.id,
+          "أرشفة مباشرة بواسطة المدير العام"
+        ]
       );
 
       if (result.rows.length === 0) {
@@ -555,18 +553,29 @@ module.exports = function (pool) {
         transactionStarted = false;
 
         return res.status(404).json({
-          error: "القضية غير موجودة"
+          error: "القضية غير موجودة أو مؤرشفة مسبقًا"
         });
       }
 
-      const deletedCase = result.rows[0];
+      const archivedCase = result.rows[0];
 
-      // تسجيل الحذف داخل نفس المعاملة
+      await addCaseHistory(
+        db,
+        archivedCase.id,
+        req.session.officer.id,
+        "ARCHIVE",
+        {
+          case_number: archivedCase.case_number,
+          title: archivedCase.title,
+          reason: "أرشفة مباشرة بواسطة المدير العام"
+        }
+      );
+
       await addAuditLog(
         db,
         req.session.officer.id,
-        "DELETE_CASE",
-        `تم حذف القضية ${deletedCase.case_number}: ${deletedCase.title}`
+        "ARCHIVE_CASE",
+        `تمت أرشفة القضية ${archivedCase.case_number}: ${archivedCase.title}`
       );
 
       await db.query("COMMIT");
@@ -574,26 +583,16 @@ module.exports = function (pool) {
 
       res.json({
         success: true,
-        message: "تم حذف القضية بنجاح"
+        message: "تمت أرشفة القضية بنجاح. لم يتم حذف أي بيانات."
       });
 
     } catch (error) {
       if (db && transactionStarted) {
         await db.query("ROLLBACK").catch(() => {});
       }
-
-      if (error.code === "23503") {
-        return res.status(409).json({
-          error: "لا يمكن حذف القضية لوجود تقارير أو أدلة مرتبطة بها"
-        });
-      }
-
       next(error);
-
     } finally {
-      if (db) {
-        db.release();
-      }
+      if (db) db.release();
     }
   });
 
